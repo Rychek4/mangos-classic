@@ -58,6 +58,7 @@ To be able to accomplish these goals, we support and promote:
   * [Wiki](https://github.com/cmangos/issues/wiki) with additional information on installation
   * [Contributing Guidelines](CONTRIBUTING.md)
   * Documentation can be found in the doc/ subdirectory and on the GitHub wiki
+  * [Building with the PlayerBots module](BUILDING_PLAYERBOTS.md) (this fork)
 
 ## License
 
