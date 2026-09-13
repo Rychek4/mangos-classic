@@ -64,14 +64,21 @@ winget install --id Python.Python.3.12 -e --source winget   # for the narrator, 
    `Microsoft.VisualStudio.Workload.VCTools`) is a smaller substitute when the
    IDE is not wanted.
 
-2. Boost, prebuilt for MSVC 14.3, from
-   <https://sourceforge.net/projects/boost/files/boost-binaries/>: run
-   `boost_1_87_0-msvc-14.3-64.exe` and accept `C:\local\boost_1_87_0`.
-   Then tell CMake where it is and reopen PowerShell:
+2. Boost, prebuilt, from
+   <https://sourceforge.net/projects/boost/files/boost-binaries/>: take the
+   newest release (not a `_b1` beta) and the installer whose toolset matches
+   the compiler, `msvc-14.3` for Visual Studio 2022 (`msvc-14.5` for
+   Visual Studio 2026, with the generator `"Visual Studio 18 2026"` below).
+   Accept the default folder, for example `C:\local\boost_1_92_0`, then tell
+   CMake where it is and reopen PowerShell:
 
 ```powershell
-[Environment]::SetEnvironmentVariable("BOOST_ROOT", "C:\local\boost_1_87_0", "User")
+[Environment]::SetEnvironmentVariable("BOOST_ROOT", "C:\local\boost_1_92_0", "User")
 ```
+
+   The core needs Boost 1.70 or newer and the bridge uses only current
+   Asio; the fork's CI pins 1.87.0, which is the known-good fallback if a
+   newer release ever fails inside Boost's own headers.
 
 3. The three repositories as siblings, on the working branch:
 
@@ -101,10 +108,9 @@ C:\wow\server\mangosd.exe --version
    --config Release --parallel` again; CMake never touches the sibling
    checkout.
 
-If CMake reports that Boost was not found, pass
-`-DBOOST_ROOT=C:\local\boost_1_87_0` on the configure line as well and check
-that `C:\local\boost_1_87_0\lib64-msvc-14.3\cmake\Boost-1.87.0\BoostConfig.cmake`
-exists. If Git complains about path length, `git config --global
+If CMake reports that Boost was not found, pass the same folder as
+`-DBOOST_ROOT=...` on the configure line as well and check that
+`lib64-msvc-14.3\cmake\Boost-<version>\BoostConfig.cmake` exists under it. If Git complains about path length, `git config --global
 core.longpaths true`. Debug builds are several times slower; use Release, or
 RelWithDebInfo when a stack trace is needed.
 
