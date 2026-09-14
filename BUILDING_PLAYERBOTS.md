@@ -135,9 +135,7 @@ If CMake reports that Boost was not found, pass the same folder as
 core.longpaths true`. Debug builds are several times slower; use Release, or
 RelWithDebInfo when a stack trace is needed.
 
-Running the server needs more than compiling it: a MySQL 8 server
-(`winget install --id Oracle.MySQL -e`), the classic world database from
-<https://github.com/cmangos/classic-db>, and map, vmap and mmap data extracted
-from a 1.12.1 client with the extractors built above. Then
-`AiPlayerbot.Bridge.Port = 8890` in `aiplayerbot.conf`, and the narrator
-from its own README.
+Compiling is not running. `RUNNING.md` takes it from here: MySQL, the
+databases, the world database, the playerbots tables, extracting map data
+from a 1.12.1 client, the configuration files, turning the bridge on, and
+starting the narrator.
