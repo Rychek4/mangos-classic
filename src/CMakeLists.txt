@@ -45,17 +45,13 @@ if(BUILD_PLAYERBOTS)
     GIT_TAG "${PLAYERBOTS_GIT_TAG}"
   )
 
-  FetchContent_GetProperties(PlayerBots)
-  if (NOT playerbots_POPULATED)
-    FetchContent_Populate(PlayerBots)
-    message(STATUS "Playerbots module source dir: ${playerbots_SOURCE_DIR}")
-  else()
-    message(STATUS "Playerbots module already populated: ${playerbots_POPULATED}")
-  endif()
-
-  # The binary dir is passed explicitly so that a source dir outside this tree
-  # (the FETCHCONTENT_SOURCE_DIR_PLAYERBOTS override) is accepted by CMake.
-  add_subdirectory(${playerbots_SOURCE_DIR} ${playerbots_BINARY_DIR})
+  # MakeAvailable populates and then adds the module's subdirectory with both
+  # its source and its binary dir, which is what a source dir outside this
+  # tree (the FETCHCONTENT_SOURCE_DIR_PLAYERBOTS override) needs. The older
+  # FetchContent_Populate(<name>) form does the same thing but CMake 4
+  # deprecates it and will remove it.
+  FetchContent_MakeAvailable(PlayerBots)
+  message(STATUS "Playerbots module source dir: ${playerbots_SOURCE_DIR}")
 
 else()
   if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modules/PlayerBots)
