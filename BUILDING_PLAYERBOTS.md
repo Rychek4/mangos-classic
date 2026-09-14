@@ -65,20 +65,41 @@ winget install --id Python.Python.3.12 -e --source winget   # for the narrator, 
    IDE is not wanted.
 
 2. Boost, prebuilt, from
-   <https://sourceforge.net/projects/boost/files/boost-binaries/>: take the
-   newest release (not a `_b1` beta) and the installer whose toolset matches
-   the compiler, `msvc-14.3` for Visual Studio 2022 (`msvc-14.5` for
-   Visual Studio 2026, with the generator `"Visual Studio 18 2026"` below).
-   Accept the default folder, for example `C:\local\boost_1_92_0`, then tell
-   CMake where it is and reopen PowerShell:
+   <https://sourceforge.net/projects/boost/files/boost-binaries/>. Pick a
+   version folder (the fork's CI uses `1.87.0`; a newer release is fine, but
+   not a `_b1` beta), then the installer whose toolset matches the compiler:
+   `msvc-14.3` for Visual Studio 2022, `msvc-14.5` for Visual Studio 2026.
+   `-64` is the x64 build. The core needs 1.70 or newer and the bridge uses
+   only current Asio, so `boost_1_87_0-msvc-14.3-64.exe` is the known-good
+   choice.
+
+   The download is a self-extracting installer; nothing finds Boost until it
+   has been run. From the Downloads folder, double-click it, or:
 
 ```powershell
-[Environment]::SetEnvironmentVariable("BOOST_ROOT", "C:\local\boost_1_92_0", "User")
+Start-Process "$env:USERPROFILE\Downloads\boost_1_87_0-msvc-14.3-64.exe"
 ```
 
-   The core needs Boost 1.70 or newer and the bridge uses only current
-   Asio; the fork's CI pins 1.87.0, which is the known-good fallback if a
-   newer release ever fails inside Boost's own headers.
+   Windows SmartScreen may say it protected the PC: **More info**, then **Run
+   anyway**. Take the wizard's default destination, `C:\local\boost_1_87_0`,
+   and let it extract; it is a few GB and takes a few minutes. Then check the
+   result, set the variable, and **close and reopen PowerShell** so the new
+   environment is picked up:
+
+```powershell
+Test-Path C:\local\boost_1_87_0\lib64-msvc-14.3\cmake\Boost-1.87.0\BoostConfig.cmake
+[Environment]::SetEnvironmentVariable("BOOST_ROOT", "C:\local\boost_1_87_0", "User")
+```
+
+   That `Test-Path` must print `True`. If it prints `False`, the wrong
+   toolset or the source archive was downloaded rather than a binary
+   installer.
+
+   In the new prompt, confirm the whole toolchain before going on:
+
+```powershell
+git --version; cmake --version; $env:BOOST_ROOT
+```
 
 3. The three repositories as siblings, on the working branch:
 
