@@ -4,6 +4,11 @@ From compiled binaries to a world you can log into, with playerbots and the
 narrator bridge switched on. Assumes `BUILDING_PLAYERBOTS.md` is done and
 `C:\wow\server\mangosd.exe --version` prints a revision.
 
+If you have not done this before, read `FIRST_RUN.md` instead. Same journey,
+explained rather than listed, with the scripts in `setup/` doing steps 2 to 5
+and 7 to 8 in one command. This file is the reference: what each step does and
+why, for when something needs doing by hand.
+
 Most of what follows is stock CMaNGOS setup and the project's own wiki is the
 authority on it. What is written here is the path for **this** fork, and every
 path, database name and command below was read out of the source in these
@@ -32,8 +37,13 @@ The repository ships the script that makes them:
 
 ```powershell
 cd C:\wow\mangos-classic
-mysql -u root -p < sql\create\db_create_mysql.sql
+mysql -u root -p -e "source sql/create/db_create_mysql.sql"
 ```
+
+**Not** `mysql -u root -p < sql\create\db_create_mysql.sql`. PowerShell
+reserves `<` and the line fails before mysql starts. MySQL's own `source` does
+the same job; note the forward slashes, which `source` wants on Windows. The
+same applies to every `.sql` file below.
 
 That creates four databases, `classicmangos`, `classiccharacters`,
 `classicrealmd` and `classiclogs`, and a user `mangos` with password `mangos`
@@ -44,10 +54,14 @@ reach, leave them.
 ## 3. The base schemas
 
 ```powershell
-mysql -u mangos -pmangos classicrealmd     < sql\base\realmd.sql
-mysql -u mangos -pmangos classiccharacters < sql\base\characters.sql
-mysql -u mangos -pmangos classiclogs       < sql\base\logs.sql
+mysql -u mangos -pmangos --abort-source-on-error classicrealmd     -e "source sql/base/realmd.sql"
+mysql -u mangos -pmangos --abort-source-on-error classiccharacters -e "source sql/base/characters.sql"
+mysql -u mangos -pmangos --abort-source-on-error classiclogs       -e "source sql/base/logs.sql"
 ```
+
+`--abort-source-on-error` is not decoration. Without it `source` exits 0 even
+when statements inside the file failed, so a half-loaded database is
+indistinguishable from a good one until the server will not start.
 
 **Not** `sql\base\mangos.sql`. The world database comes from the content
 repository in the next step, and that dump carries its own structure: 189
@@ -74,17 +88,46 @@ cd /c/wow/classic-db
 ./InstallFullDB.sh
 ```
 
-The first run writes `InstallFullDB.config` and stops. Open that file and set
-the database name to `classicmangos`, the user to `mangos`, the password to
-`mangos`, and `CORE_PATH` to `/c/wow/mangos-classic`. Then run
-`./InstallFullDB.sh` again and it loads the full world database and every
-update since the last milestone.
+The first run writes `InstallFullDB.config` and stops. Most of that file is
+already right: the shipped defaults are `classicmangos`, `classicrealmd`,
+`classiccharacters`, `classiclogs`, user `mangos`, password `mangos`, host
+`localhost`, port 3306, which is exactly what step 2 created. Two things need
+setting by hand:
+
+```
+CORE_PATH="/c/wow/mangos-classic"
+FORCE_WAIT="NO"
+```
+
+Then:
+
+```bash
+./InstallFullDB.sh -World
+```
+
+`-World` runs the whole content install without the menu: the full dump, the
+core world updates, the DBC data, ScriptDev2, ACID, the custom SQL and the
+locales. It uses the ordinary `mangos` user from the config, so no root
+password is involved. Without an argument the script opens an interactive menu
+instead, which does the same work with more typing.
+
+There is also `-InstallAll <rootuser> <rootpass>`, which drops and recreates
+all four databases first and so replaces steps 2 and 3 as well. It forces
+`PLAYERBOTS_DB="YES"` internally, which sounds useful and is not — see below.
 
 **Leave `PLAYERBOTS_DB` set to `NO`.** It looks for the module's SQL at
 `${CORE_PATH}/src/modules/PlayerBots/sql`, and our module is a sibling
-checkout at `C:\wow\playerbots` instead. Worse, the script guards each file
-with an existence test, so a wrong path applies nothing and reports no error.
-Step 5 does that work explicitly.
+checkout at `C:\wow\playerbots` instead. Worse, the loop is
+
+```bash
+for UPDATEFILE in ${CORE_PATH}/src/modules/PlayerBots/sql/world/*.sql; do
+  if [ -e "$UPDATEFILE" ]; then
+```
+
+so when the glob matches nothing the existence test fails, the loop applies
+nothing, and the script prints `> Trying to apply playerbots sql mods...` and
+moves on without an error. Setting it to `YES` therefore looks like it worked
+and does nothing at all. Step 5 does that work explicitly.
 
 ## 5. The playerbots tables
 
@@ -93,10 +136,21 @@ the classic-specific set, then characters:
 
 ```powershell
 cd C:\wow\playerbots
-Get-ChildItem sql\world\*.sql         | ForEach-Object { mysql -u mangos -pmangos classicmangos     -e "source $($_.FullName)" }
-Get-ChildItem sql\world\classic\*.sql | ForEach-Object { mysql -u mangos -pmangos classicmangos     -e "source $($_.FullName)" }
-Get-ChildItem sql\characters\*.sql    | ForEach-Object { mysql -u mangos -pmangos classiccharacters -e "source $($_.FullName)" }
+function Load-Sql($db, $file) {
+    mysql -u mangos -pmangos --abort-source-on-error $db -e "source $($file -replace '\\','/')"
+    if ($LASTEXITCODE -ne 0) { throw "failed: $file" }
+}
+Get-ChildItem sql\world\*.sql         | ForEach-Object { Load-Sql classicmangos     $_.FullName }
+Get-ChildItem sql\world\classic\*.sql | ForEach-Object { Load-Sql classicmangos     $_.FullName }
+Get-ChildItem sql\characters\*.sql    | ForEach-Object { Load-Sql classiccharacters $_.FullName }
 ```
+
+Order matters. `ai_playerbot_indexes.sql` indexes the loot tables and
+`ai_playerbot_rpg_races.sql` edits `gossip_menu_option`, so both need the world
+database from step 4 to exist already. And the index file has no
+`IF NOT EXISTS`, so running it a second time is an error rather than a no-op;
+`setup\Install-Databases.ps1` checks for the index before applying it, which is
+why that script is safe to re-run and this loop is not.
 
 That is eight files into the world database (texts, rpg races, indexes, plus
 enchants, named locations, travel nodes, weight scales and zone levels) and
@@ -232,6 +286,21 @@ narrator-ui
 The `--record` flag is worth using on the first run. It writes every bridge
 message to a file that replays offline, which means the first real session can
 be studied and the director tuned without the server running.
+
+## Checking it without starting a client
+
+From the narrator checkout, against the running server:
+
+```powershell
+narrator doctor --llm openai:http://127.0.0.1:8080/v1 --watch 30
+```
+
+It reports the link and its handshake, the round trip, `scene.get`,
+`bot.list`, the random-bot roster, which events arrive while it watches, and
+how long the model takes to answer one line. Read-only unless you pass
+`--act`, which summons a bot, places it, gives it a line and dismisses it.
+`setup\Test-Setup.ps1` does the same for the server side: binaries, extracted
+data, configs, database row counts, open ports.
 
 ## What success looks like
 
