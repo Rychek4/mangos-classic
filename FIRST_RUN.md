@@ -478,6 +478,9 @@ means: one of them is still up. Stop it and re-run only the install line.
 
 ## Starting up next time
 
+`CHEAT_SHEET.md` is the one-page version of this section, every part's start and
+stop, in order. Keep that one open.
+
 Once it is built, a session is:
 
 ```powershell
