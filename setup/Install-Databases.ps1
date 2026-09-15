@@ -253,6 +253,23 @@ PLAYERBOTS_DB="NO"
 }
 
 # 6 -------------------------------------------------------------------------
+Write-Step "Applying core updates the databases are missing"
+
+<#
+    The world database comes from a content repository that tracks cmangos
+    master, and this core checkout is wherever it is. The two drift, in either
+    direction, and the server refuses to start on any mismatch. This closes
+    the gap when the core is ahead, and says so plainly when the database is.
+#>
+$stale = 0
+foreach ($db in $script:CoreDatabases) {
+    if (-not (Update-CoreDatabase -MySql $mysql -CorePath $CorePath -User $DbUser -Password $DbPassword @db)) { $stale++ }
+}
+if ($stale -gt 0) {
+    Fail "$stale database(s) cannot be brought in step with this core. The server will not start until that is resolved."
+}
+
+# 7 -------------------------------------------------------------------------
 Write-Step "Applying the playerbots tables"
 
 <#
@@ -303,7 +320,7 @@ foreach ($group in $groups) {
 }
 Write-Good "$applied playerbots SQL files applied"
 
-# 7 -------------------------------------------------------------------------
+# 8 -------------------------------------------------------------------------
 Write-Step "Checking the result"
 
 $checks = @(

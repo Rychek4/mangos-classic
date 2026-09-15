@@ -401,6 +401,19 @@ right one for this project permanently.
 This one really is the password. Different message, different cause — the
 script tells the two apart by MySQL's own error number, 1045 against 2003.
 
+**"The table `db_version` in your [WORLD] database indicates that this database is out of date!"**
+Read the two lines under it before believing it. `[A] You have` is what the
+database is at; `[B] You need` is what the server was built for. If A is the
+*higher* number, the database is **ahead** of the server, not behind - the
+world database comes from a content repository that tracks cmangos master, and
+your core checkout has fallen behind it. The message is the same in both
+directions; only the numbers tell you which. `Test-Setup.ps1` reads them for
+you and says AHEAD or behind outright.
+
+- Behind: `setup\Update-Databases.ps1` applies what is missing.
+- Ahead: there is nothing to apply. Pull the newer core, rebuild, install, and
+  then run `Update-Databases.ps1` for whatever the new core adds on top.
+
 **The server exits complaining about maps or DBC.**
 The four extracted folders are not beside `mangosd.exe`, or the extraction did
 not finish. `.\Test-Setup.ps1` says which.
@@ -437,6 +450,21 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ```
 
 ---
+
+## After pulling a newer server
+
+The world database and the core each move on their own, and the server refuses
+to start on any mismatch between them. So a core update is always three steps,
+not one:
+
+```powershell
+cd C:\wow\mangos-classic
+cmake --build build --config Release --parallel
+cmake --install build --config Release
+setup\Update-Databases.ps1                   # applies whatever the new core needs
+```
+
+`Test-Setup.ps1` will tell you if you forgot the third.
 
 ## Starting up next time
 

@@ -263,3 +263,95 @@ function Get-RowCount {
     if ($LASTEXITCODE -ne 0 -or -not $answer) { return -1 }
     return [int]($answer | Select-Object -First 1)
 }
+
+<#
+    The four databases the core versions, and where each one's updates live.
+#>
+$script:CoreDatabases = @(
+    @{ Database = "classicmangos";     VersionTable = "db_version";           UpdateDir = "mangos" },
+    @{ Database = "classiccharacters"; VersionTable = "character_db_version"; UpdateDir = "characters" },
+    @{ Database = "classicrealmd";     VersionTable = "realmd_db_version";    UpdateDir = "realmd" },
+    @{ Database = "classiclogs";       VersionTable = "logs_db_version";      UpdateDir = "logs" }
+)
+
+<#
+    Which core update is a database at, and what does the core expect?
+
+    Every file in sql\updates\<dir>\ begins by renaming the single column of
+    that database's version table from required_<previous file> to
+    required_<this file>, so the column name IS the version. Read it, find it
+    in the sorted file list, and everything after it is what is missing.
+
+    The case worth its own answer is the column not being in the list at all:
+    the database has an update this core checkout has never heard of, so it is
+    AHEAD, and the fix is a newer core, not more SQL. The server's own message
+    for that is "your database is out of date", which is exactly backwards.
+#>
+function Get-DbVersionState {
+    param(
+        [Parameter(Mandatory)] [string] $MySql,
+        [Parameter(Mandatory)] [string] $CorePath,
+        [Parameter(Mandatory)] [string] $Database,
+        [Parameter(Mandatory)] [string] $VersionTable,
+        [Parameter(Mandatory)] [string] $UpdateDir,
+        [string] $User = "mangos",
+        [string] $Password = "mangos"
+    )
+    $files  = @(Get-ChildItem -Path (Join-Path $CorePath "sql\updates\$UpdateDir") -Filter *.sql -File -ErrorAction SilentlyContinue |
+                Sort-Object Name)
+    $newest = if ($files.Count) { $files[-1].BaseName } else { "" }
+    $column = @(Invoke-Sql -MySql $MySql -Database $Database -User $User -Password $Password -Query @"
+SELECT column_name FROM information_schema.columns
+ WHERE table_schema = '$Database' AND table_name = '$VersionTable' AND column_name LIKE 'required_%'
+"@) | Select-Object -First 1
+    if (-not $column) {
+        return [pscustomobject] @{ State = "unknown"; Have = ""; Pending = @(); Newest = $newest }
+    }
+    $have  = $column -replace '^required_', ''
+    $index = [array]::IndexOf(@($files | ForEach-Object BaseName), $have)
+    if ($index -lt 0) {
+        return [pscustomobject] @{ State = "ahead"; Have = $have; Pending = @(); Newest = $newest }
+    }
+    $pending = @($files | Select-Object -Skip ($index + 1))
+    $state   = if ($pending.Count -gt 0) { "behind" } else { "current" }
+    return [pscustomobject] @{ State = $state; Have = $have; Pending = $pending; Newest = $newest }
+}
+
+# Bring one database up to the core's revision. True if it is current afterwards.
+function Update-CoreDatabase {
+    param(
+        [Parameter(Mandatory)] [string] $MySql,
+        [Parameter(Mandatory)] [string] $CorePath,
+        [Parameter(Mandatory)] [string] $Database,
+        [Parameter(Mandatory)] [string] $VersionTable,
+        [Parameter(Mandatory)] [string] $UpdateDir,
+        [string] $User = "mangos",
+        [string] $Password = "mangos"
+    )
+    $state = Get-DbVersionState @PSBoundParameters
+    switch ($state.State) {
+        "unknown" {
+            Write-Note "$Database has no version table yet; nothing to bring up to date"
+            return $true
+        }
+        "ahead" {
+            Write-Bad "$Database is at $($state.Have), which this core checkout has never heard of."
+            Write-Note "The database is AHEAD of the core (the core's newest is $($state.Newest))."
+            Write-Note "There is no SQL to apply. Pull a newer core, rebuild, and run this again."
+            return $false
+        }
+        "current" {
+            Write-Good "$Database is current at $($state.Have)"
+            return $true
+        }
+    }
+    Write-Note "$Database is at $($state.Have); $($state.Pending.Count) update(s) to apply"
+    foreach ($file in $state.Pending) {
+        if (-not (Invoke-SqlFile -MySql $MySql -Database $Database -File $file.FullName -User $User -Password $Password)) {
+            Write-Bad "Failed applying $($file.Name) to $Database. The error is in the lines above."
+            return $false
+        }
+        Write-Good "$Database  <-  $($file.Name)"
+    }
+    return $true
+}

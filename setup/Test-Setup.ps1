@@ -16,6 +16,7 @@
 param(
     [string] $ServerPath = "C:\wow\server",
     [string] $PlayerbotsPath = "C:\wow\playerbots",
+    [string] $CorePath = "C:\wow\mangos-classic",
     [string] $MySqlPath  = "",
     [string] $DbUser     = "mangos",
     [string] $DbPassword = "mangos",
@@ -169,6 +170,30 @@ if (-not $mysql) {
     } else {
         Write-Good "$accounts accounts (four of them the shipped demo ones)"
     }
+    <#
+        Are the databases at the revision this core expects? The server checks
+        this at startup and refuses on any mismatch, with a message that reads
+        the same whether the database is behind or ahead. This tells the two
+        apart, and it is the check that predicts "database is out of date"
+        before you have waited through a world load to see it.
+    #>
+    if (Test-Path (Join-Path $CorePath "sql\updates\mangos")) {
+        foreach ($db in $script:CoreDatabases) {
+            $v = Get-DbVersionState -MySql $mysql -CorePath $CorePath -User $DbUser -Password $DbPassword @db
+            $label = "{0} ({1})" -f $db.Database, $db.VersionTable
+            switch ($v.State) {
+                "current" { Write-Good ("{0,-46} at {1}" -f $label, $v.Have) }
+                "behind"  { Bad ("{0,-46} {1} update(s) behind the core" -f $label, $v.Pending.Count)
+                            Write-Note "run setup\Update-Databases.ps1" }
+                "ahead"   { Bad ("{0,-46} at {1}, AHEAD of this core" -f $label, $v.Have)
+                            Write-Note "the core's newest is $($v.Newest); pull a newer core and rebuild" }
+                default   { Bad ("{0,-46} no version table" -f $label) }
+            }
+        }
+    } else {
+        Write-Note "no core checkout at $CorePath; skipping the version-alignment check"
+    }
+
     $bots = Get-RowCount -MySql $mysql -Database "classiccharacters" -Table "ai_playerbot_random_bots" `
                          -User $DbUser -Password $DbPassword
     if ($bots -eq 0) {

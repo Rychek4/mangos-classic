@@ -287,6 +287,20 @@ The `--record` flag is worth using on the first run. It writes every bridge
 message to a file that replays offline, which means the first real session can
 be studied and the director tuned without the server running.
 
+## Keeping the core and the databases in step
+
+The classic-db content repository tracks cmangos master and carries core
+schema updates with it; this fork's core is wherever it was last merged. Each
+database's version table has one column named `required_<last update
+applied>`, and each file in `sql/updates/<db>/` starts by renaming it. The
+server compares the column against the revision it was built with and refuses
+to start on any difference, printing "out of date" in both directions.
+
+After pulling a newer core: build, install, then `setup\Update-Databases.ps1`,
+which applies every file after the one the column names. If the column names a
+file the checkout does not have, the database is ahead and the core is what
+needs updating. `setup\Test-Setup.ps1` reports the state of all four.
+
 ## Checking it without starting a client
 
 From the narrator checkout, against the running server:

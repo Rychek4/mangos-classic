@@ -11,7 +11,8 @@ ground covered by hand.
 | `start-server.bat` | realmd in its own window, mangosd in this one. |
 | `Install-Databases.ps1` | Four databases, the server's MySQL user, base schemas, the classic world database, the fourteen playerbots SQL files. `-Force` rebuilds from scratch, `-SkipWorldDb` leaves out the long download. |
 | `Install-Configs.ps1` | `*.conf.dist` to `*.conf`, and switches the narrator bridge on. Keeps your edits unless you pass `-Overwrite`. |
-| `Test-Setup.ps1` | Reads everything back: binaries, extracted client data, configs, database row counts, open ports, and whether the installed binary is older than the module source. Changes nothing. Exits non-zero if anything is wrong. |
+| `Update-Databases.ps1` | Brings the four databases up to the revision the core checkout expects, by reading each version table and applying the update files after it. Says so, rather than guessing, when a database is *ahead* of the core. Run it after every core pull. |
+| `Test-Setup.ps1` | Reads everything back: binaries, extracted client data, configs, database row counts, whether each database is at the revision the core expects (and if not, which direction), open ports, and whether the installed binary is older than the module source. Changes nothing. Exits non-zero if anything is wrong. |
 | `Start-Server.ps1` | What `start-server.bat` calls. |
 | `_Common.ps1` | Shared helpers. Dot-sourced, not run. |
 
@@ -25,7 +26,7 @@ never goes on a command line, where any other process could read it out of the
 argument list - which is also why you do not see mysql's "using a password on
 the command line interface can be insecure" warning.
 
-Five things these scripts know that a hand-written command line usually does
+Six things these scripts know that a hand-written command line usually does
 not:
 
 - **`mysql < file.sql` does not work in PowerShell.** `<` is reserved, and the
@@ -33,6 +34,12 @@ not:
 - **`source` exits 0 even when statements inside the file failed.**
   `--abort-source-on-error` is passed everywhere, and probed for first, because
   an older client does not have it.
+- **"Database is out of date" does not say which direction.** The server
+  prints the same message whether the database is behind the core or ahead of
+  it, and the fix is opposite in each case. Every update file begins by renaming
+  the version table's one column to its own name, so the column name is the
+  version; the scripts read it, find it in the sorted file list, and know
+  exactly what is missing - or that nothing is, and the core is what is old.
 - **`mangosd --version` says nothing about the playerbots module.** That
   revision is the core repository's. The module is a separate checkout and can
   be several commits ahead of the binary with the version string looking
