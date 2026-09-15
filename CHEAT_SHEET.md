@@ -75,6 +75,17 @@ Ctrl-C                     in its window
 ```
 **Stop realmd** — Ctrl-C in its window, or `Stop-Process -Name realmd`.
 
+If you used Ctrl-C, cmd then asks `Terminate batch job (Y/N)?` - that is the
+`.bat` wrapper, not the server. By then mangosd has already printed
+`Halting process...` and is down. Answer `Y`. (`server shutdown 0` never asks,
+because no signal reaches cmd.)
+
+A wall of `Delete Gameobject ... lost references to owner Player ... Crash
+possible later.` during shutdown is the core tidying up hunter bots' traps
+(Immolation Trap, Freezing Trap) after their owners were already logged out.
+It appears whichever way you stopped the server, whenever a hunter had a trap
+down, and "later" never comes: the process is exiting. Ignore it.
+
 **Never** close a server window with the X. Windows kills it instead of asking it to stop, and any saves in flight are lost.
 
 ---
