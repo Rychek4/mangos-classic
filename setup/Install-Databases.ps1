@@ -76,6 +76,29 @@ if (-not (Test-Path (Join-Path $PlayerbotsPath "sql\characters\ai_playerbot_rand
 Write-Good "both checkouts look right"
 
 # 2 -------------------------------------------------------------------------
+Write-Step "Is MySQL actually running?"
+
+<#
+    Asked before anything else, and before the password prompt in particular.
+    Typing a root password and then being told the connection was refused is
+    the wrong answer to the wrong question: the password was never tried.
+#>
+if (-not (Test-Port 3306)) {
+    Write-Bad "Nothing is listening on 127.0.0.1:3306, so MySQL is not running."
+    Write-Note "Find the service and start it:"
+    Write-Note ""
+    Write-Note "    Get-Service MySQL*"
+    Write-Note "    Start-Service <the name it printed>"
+    Write-Note "    Set-Service <the name it printed> -StartupType Automatic"
+    Write-Note ""
+    Write-Note "If Get-Service finds nothing, the server files are installed but the"
+    Write-Note "service was never created. Re-run MySQL Installer and choose Reconfigure"
+    Write-Note "on the server, which initialises the data directory and registers it."
+    exit 1
+}
+Write-Good "something is listening on 127.0.0.1:3306"
+
+# 4 -------------------------------------------------------------------------
 Write-Step "Creating the four databases and the server's MySQL user"
 
 $wanted   = @("classicmangos", "classiccharacters", "classicrealmd", "classiclogs")
@@ -98,6 +121,9 @@ if ($haveAll -and -not $Force) {
     $secure = Read-Host "     root password" -AsSecureString
     $rootPass = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto(
         [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure))
+    if (-not $rootPass) {
+        Fail "No password was entered. This step needs a console it can prompt on; run it from a PowerShell window rather than a pipeline or a scheduled task."
+    }
 
     # The shipped script uses plain CREATE DATABASE, which fails the second
     # time. Same statements, made repeatable, so re-running is not a dead end.
@@ -114,23 +140,32 @@ if ($haveAll -and -not $Force) {
 
     # WriteAllText with an explicit no-BOM encoding. Set-Content on Windows
     # PowerShell writes a BOM, and mysql reads it as part of the first statement.
-    $temp = Join-Path $env:TEMP "azeroth_db_create.sql"
+    $temp = Join-Path ([System.IO.Path]::GetTempPath()) "azeroth_db_create.sql"
     [System.IO.File]::WriteAllText($temp, $createSql, (New-Object System.Text.UTF8Encoding($false)))
-    & $mysql "--user=root" "--password=$rootPass" -e "source $(ConvertTo-SqlPath $temp)"
-    $created = ($LASTEXITCODE -eq 0)
+    $result = Invoke-SqlAsRoot -MySql $mysql -RootPassword $rootPass -File $temp
     Remove-Item $temp -ErrorAction SilentlyContinue
     $rootPass = $null
 
-    if (-not $created) {
-        Write-Bad "MySQL refused that. Wrong root password, or the server is not running."
-        Write-Note "Check the service: Get-Service MySQL*"
+    if (-not $result.Ok) {
+        # mysql's own error numbers say which of these it was, so say which.
+        if ($result.Output -match "1045|Access denied") {
+            Write-Bad "MySQL rejected that root password."
+            Write-Note "If you have forgotten it, MySQL Installer can reset it: Reconfigure"
+            Write-Note "the server and set a new root password."
+        } elseif ($result.Output -match "2003|Can't connect") {
+            Write-Bad "MySQL stopped answering between the check above and this step."
+            Write-Note "Check the service: Get-Service MySQL*"
+        } else {
+            Write-Bad "MySQL refused the statements that create the databases."
+        }
+        Write-Host $result.Output
         exit 1
     }
     Write-Good "classicmangos, classiccharacters, classicrealmd, classiclogs"
     Write-Good "user '$DbUser' can reach all four from localhost"
 }
 
-# 3 -------------------------------------------------------------------------
+# 4 -------------------------------------------------------------------------
 Write-Step "Loading the base schemas (realmd, characters, logs)"
 
 if (-not (Initialize-MySqlOptions -MySql $mysql -User $DbUser -Password $DbPassword)) {
@@ -155,7 +190,7 @@ $realms = Invoke-Sql -MySql $mysql -Database "classicrealmd" -User $DbUser -Pass
                      -Query "SELECT CONCAT(name, ' at ', address, ':', port) FROM realmlist"
 if ($realms) { Write-Good "realm: $($realms | Select-Object -First 1)" }
 
-# 4 -------------------------------------------------------------------------
+# 5 -------------------------------------------------------------------------
 Write-Step "Fetching the world database"
 
 if ($SkipWorldDb) {
@@ -214,7 +249,7 @@ PLAYERBOTS_DB="NO"
     Write-Good "world database loaded"
 }
 
-# 5 -------------------------------------------------------------------------
+# 6 -------------------------------------------------------------------------
 Write-Step "Applying the playerbots tables"
 
 <#
@@ -265,7 +300,7 @@ foreach ($group in $groups) {
 }
 Write-Good "$applied playerbots SQL files applied"
 
-# 6 -------------------------------------------------------------------------
+# 7 -------------------------------------------------------------------------
 Write-Step "Checking the result"
 
 $checks = @(

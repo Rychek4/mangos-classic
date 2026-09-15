@@ -19,7 +19,13 @@ All of them take `-MySqlPath` if `mysql` is not on PATH, and paths for the
 checkouts (`-CorePath`, `-PlayerbotsPath`, `-ServerPath`) if yours are not
 under `C:\wow`.
 
-Three things these scripts know that a hand-written command line usually does
+The root password is asked for once, written to a temporary MySQL option file
+passed as `--defaults-extra-file`, and the file is deleted immediately. It
+never goes on a command line, where any other process could read it out of the
+argument list - which is also why you do not see mysql's "using a password on
+the command line interface can be insecure" warning.
+
+Four things these scripts know that a hand-written command line usually does
 not:
 
 - **`mysql < file.sql` does not work in PowerShell.** `<` is reserved, and the
@@ -27,6 +33,10 @@ not:
 - **`source` exits 0 even when statements inside the file failed.**
   `--abort-source-on-error` is passed everywhere, and probed for first, because
   an older client does not have it.
+- **A connection refused and a rejected password are different problems.**
+  MySQL says 2003 for one and 1045 for the other; the scripts read the number
+  and say which. Reachability is checked before the password prompt, so a
+  stopped service never costs you a password.
 - **`ai_playerbot_indexes.sql` has no `IF NOT EXISTS`**, so it fails on a
   second run. The index is checked for before the file is applied, which is
   what makes `Install-Databases.ps1` safe to run again.

@@ -66,7 +66,26 @@ If winget does not have it, get MySQL Installer from dev.mysql.com and choose
 **Server only**. Set a root password when it asks and write it down; you need
 it exactly once, in step 3. Keep port 3306.
 
-**Checkpoint.** This prints a version:
+**Checkpoint.** Two things. The service is running:
+
+```powershell
+Get-Service MySQL*
+```
+
+`Status` must say `Running`. If it says `Stopped`, start it and make it start
+itself from now on:
+
+```powershell
+Start-Service MySQL84                          # use whatever name it printed
+Set-Service  MySQL84 -StartupType Automatic
+```
+
+If `Get-Service` finds nothing at all, the server files were installed but the
+service was never created. Re-run MySQL Installer and pick **Reconfigure** on
+the server; that is the step that initialises the data directory and registers
+the service.
+
+And the client runs:
 
 ```powershell
 mysql --version
@@ -130,8 +149,13 @@ Add `-MySqlPath "C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql.exe"` on
 the end if `mysql` is not on your PATH.
 
 It asks for your MySQL root password once, to create the databases and the
-`mangos` user. Everything after that runs as `mangos`, so the root password
-never appears on a command line where another program could read it.
+`mangos` user. That password goes into a temporary MySQL option file that is
+deleted straight afterwards, not onto a command line, so it never shows up in
+the process list for anything else on the machine to read. Everything after
+that step runs as `mangos`.
+
+Any character is fine in that password — `@`, `#`, quotes, backslashes. The
+script quotes and escapes it for the option file.
 
 Then it prints rows going by for five to fifteen minutes. That is the world
 database loading. It is meant to look like that.
@@ -312,6 +336,16 @@ That last sentence is the actual goal. Everything above it is plumbing.
 ---
 
 ## When it does not work
+
+**"Nothing is listening on 127.0.0.1:3306, so MySQL is not running."**
+Exactly what it says, and it is checked before the password prompt so you do
+not waste a password on a connection that was never going to happen. `mysql`
+being installed is not the same as `mysqld` running. See the checkpoint in
+step 1.
+
+**"MySQL rejected that root password."**
+This one really is the password. Different message, different cause — the
+script tells the two apart by MySQL's own error number, 1045 against 2003.
 
 **The server exits complaining about maps or DBC.**
 The four extracted folders are not beside `mangosd.exe`, or the extraction did

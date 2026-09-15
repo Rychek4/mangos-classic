@@ -151,22 +151,6 @@ if (-not $mysql) {
 # 5 -------------------------------------------------------------------------
 Write-Step "What is already listening"
 
-# Test-NetConnection spends seconds on a closed port. A plain TCP connect with
-# a short timeout answers the same question in milliseconds.
-function Test-Port([int] $Port, [int] $TimeoutMs = 300) {
-    $client = New-Object System.Net.Sockets.TcpClient
-    try {
-        $handle = $client.BeginConnect("127.0.0.1", $Port, $null, $null)
-        if (-not $handle.AsyncWaitHandle.WaitOne($TimeoutMs)) { return $false }
-        $client.EndConnect($handle)
-        return $true
-    } catch {
-        return $false
-    } finally {
-        $client.Close()
-    }
-}
-
 $ports = [ordered] @{
     3306        = "MySQL"
     3724        = "realmd, the login server"

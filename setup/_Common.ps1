@@ -158,6 +158,60 @@ SELECT COUNT(*) FROM information_schema.statistics
     return ($answer -and ([int]($answer | Select-Object -First 1)) -gt 0)
 }
 
+<#
+    Is anything listening? A plain TCP connect with a short timeout, because
+    Test-NetConnection spends seconds on a closed port and we ask this before
+    doing anything slow.
+#>
+function Test-Port([int] $Port, [string] $ComputerName = "127.0.0.1", [int] $TimeoutMs = 400) {
+    $client = New-Object System.Net.Sockets.TcpClient
+    try {
+        $handle = $client.BeginConnect($ComputerName, $Port, $null, $null)
+        if (-not $handle.AsyncWaitHandle.WaitOne($TimeoutMs)) { return $false }
+        $client.EndConnect($handle)
+        return $true
+    } catch {
+        return $false
+    } finally {
+        $client.Close()
+    }
+}
+
+<#
+    Run mysql as root without putting the password in the process command line,
+    where any other program on the machine can read it out of the argument list.
+    An option file passed as --defaults-extra-file is MySQL's own answer to
+    this; it must be the first option, and it is deleted straight after.
+#>
+function Invoke-SqlAsRoot {
+    param(
+        [Parameter(Mandatory)] [string] $MySql,
+        [Parameter(Mandatory)] [string] $RootPassword,
+        [Parameter(Mandatory)] [string] $File
+    )
+    # Option files take backslash escapes inside quoted values, so a password
+    # with a backslash or a quote in it has to be written as one.
+    $escaped = $RootPassword -replace '\\', '\\' -replace '"', '\"'
+    # GetTempPath rather than $env:TEMP, which is not set everywhere, and a
+    # random name so two runs cannot fight over one credentials file.
+    $optFile = Join-Path ([System.IO.Path]::GetTempPath()) ("azeroth_" + [System.IO.Path]::GetRandomFileName() + ".cnf")
+    [System.IO.File]::WriteAllText($optFile, "[client]`nuser=root`npassword=`"$escaped`"`n",
+                                   (New-Object System.Text.UTF8Encoding($false)))
+    try {
+        # The mangos user does not exist yet at this point, so the shared probe
+        # in Initialize-MySqlOptions cannot have run. Ask here, as root.
+        $extra = @()
+        & $MySql "--defaults-extra-file=$optFile" "--abort-source-on-error" -e "SELECT 1" *> $null
+        if ($LASTEXITCODE -eq 0) { $extra = @("--abort-source-on-error") }
+
+        $output = & $MySql "--defaults-extra-file=$optFile" @extra `
+                           -e "source $(ConvertTo-SqlPath $File)" 2>&1
+        return [pscustomobject] @{ Ok = ($LASTEXITCODE -eq 0); Output = ($output | Out-String) }
+    } finally {
+        Remove-Item $optFile -Force -ErrorAction SilentlyContinue
+    }
+}
+
 function Invoke-Sql {
     param(
         [Parameter(Mandatory)] [string] $MySql,
