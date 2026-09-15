@@ -96,12 +96,17 @@ function Initialize-MySqlOptions {
         [string] $User = "mangos",
         [string] $Password = "mangos"
     )
-    & $MySql "--user=$User" "--password=$Password" "--abort-source-on-error" -e "SELECT 1" *> $null
-    if ($LASTEXITCODE -eq 0) {
-        $script:MySqlExtra = @("--abort-source-on-error")
-        return $true
+    $optFile = New-MySqlOptionFile $User $Password
+    try {
+        & $MySql "--defaults-extra-file=$optFile" "--abort-source-on-error" -e "SELECT 1" *> $null
+        if ($LASTEXITCODE -eq 0) {
+            $script:MySqlExtra = @("--abort-source-on-error")
+            return $true
+        }
+        & $MySql "--defaults-extra-file=$optFile" -e "SELECT 1" *> $null
+    } finally {
+        Remove-Item $optFile -Force -ErrorAction SilentlyContinue
     }
-    & $MySql "--user=$User" "--password=$Password" -e "SELECT 1" *> $null
     if ($LASTEXITCODE -eq 0) {
         $script:MySqlExtra = @()
         Write-Warn "This mysql client is too old for --abort-source-on-error."
@@ -112,6 +117,24 @@ function Initialize-MySqlOptions {
     return $false
 }
 
+<#
+    A credentials file for one mysql call. Passwords given as --password=... sit
+    in the process argument list for anything on the machine to read, and mysql
+    says so every time it happens ("using a password on the command line
+    interface can be insecure"). This is its own answer to that: the caller
+    passes the file as --defaults-extra-file, which must be the first option,
+    and deletes it straight after.
+#>
+function New-MySqlOptionFile([string] $User, [string] $Password) {
+    # Option files take backslash escapes inside quoted values, so a password
+    # with a backslash or a quote in it has to be written as one.
+    $escaped = $Password -replace '\\', '\\' -replace '"', '\"'
+    $path = Join-Path ([System.IO.Path]::GetTempPath()) ("azeroth_" + [System.IO.Path]::GetRandomFileName() + ".cnf")
+    [System.IO.File]::WriteAllText($path, "[client]`nuser=$User`npassword=`"$escaped`"`n",
+                                   (New-Object System.Text.UTF8Encoding($false)))
+    return $path
+}
+
 function Invoke-SqlFile {
     param(
         [Parameter(Mandatory)] [string] $MySql,
@@ -120,10 +143,14 @@ function Invoke-SqlFile {
         [string] $User = "mangos",
         [string] $Password = "mangos"
     )
-    $sqlPath = ConvertTo-SqlPath $File
-    & $MySql "--user=$User" "--password=$Password" "--default-character-set=utf8mb4" `
-             @script:MySqlExtra $Database -e "source $sqlPath"
-    return ($LASTEXITCODE -eq 0)
+    $optFile = New-MySqlOptionFile $User $Password
+    try {
+        & $MySql "--defaults-extra-file=$optFile" "--default-character-set=utf8mb4" `
+                 @script:MySqlExtra $Database -e "source $(ConvertTo-SqlPath $File)"
+        return ($LASTEXITCODE -eq 0)
+    } finally {
+        Remove-Item $optFile -Force -ErrorAction SilentlyContinue
+    }
 }
 
 # Does this table exist? Used to tell "the step before this one did not run"
@@ -189,14 +216,7 @@ function Invoke-SqlAsRoot {
         [Parameter(Mandatory)] [string] $RootPassword,
         [Parameter(Mandatory)] [string] $File
     )
-    # Option files take backslash escapes inside quoted values, so a password
-    # with a backslash or a quote in it has to be written as one.
-    $escaped = $RootPassword -replace '\\', '\\' -replace '"', '\"'
-    # GetTempPath rather than $env:TEMP, which is not set everywhere, and a
-    # random name so two runs cannot fight over one credentials file.
-    $optFile = Join-Path ([System.IO.Path]::GetTempPath()) ("azeroth_" + [System.IO.Path]::GetRandomFileName() + ".cnf")
-    [System.IO.File]::WriteAllText($optFile, "[client]`nuser=root`npassword=`"$escaped`"`n",
-                                   (New-Object System.Text.UTF8Encoding($false)))
+    $optFile = New-MySqlOptionFile "root" $RootPassword
     try {
         # The mangos user does not exist yet at this point, so the shared probe
         # in Initialize-MySqlOptions cannot have run. Ask here, as root.
@@ -220,9 +240,14 @@ function Invoke-Sql {
         [string] $User = "mangos",
         [string] $Password = "mangos"
     )
-    $mysqlArgs = @("--user=$User", "--password=$Password", "--batch", "--skip-column-names")
-    if ($Database) { $mysqlArgs += $Database }
-    return (& $MySql @mysqlArgs -e $Query 2>$null)
+    $optFile = New-MySqlOptionFile $User $Password
+    try {
+        $mysqlArgs = @("--defaults-extra-file=$optFile", "--batch", "--skip-column-names")
+        if ($Database) { $mysqlArgs += $Database }
+        return (& $MySql @mysqlArgs -e $Query 2>$null)
+    } finally {
+        Remove-Item $optFile -Force -ErrorAction SilentlyContinue
+    }
 }
 
 function Get-RowCount {

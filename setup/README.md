@@ -11,7 +11,7 @@ ground covered by hand.
 | `start-server.bat` | realmd in its own window, mangosd in this one. |
 | `Install-Databases.ps1` | Four databases, the server's MySQL user, base schemas, the classic world database, the fourteen playerbots SQL files. `-Force` rebuilds from scratch, `-SkipWorldDb` leaves out the long download. |
 | `Install-Configs.ps1` | `*.conf.dist` to `*.conf`, and switches the narrator bridge on. Keeps your edits unless you pass `-Overwrite`. |
-| `Test-Setup.ps1` | Reads everything back: binaries, extracted client data, configs, database row counts, open ports. Changes nothing. Exits non-zero if anything is wrong. |
+| `Test-Setup.ps1` | Reads everything back: binaries, extracted client data, configs, database row counts, open ports, and whether the installed binary is older than the module source. Changes nothing. Exits non-zero if anything is wrong. |
 | `Start-Server.ps1` | What `start-server.bat` calls. |
 | `_Common.ps1` | Shared helpers. Dot-sourced, not run. |
 
@@ -25,7 +25,7 @@ never goes on a command line, where any other process could read it out of the
 argument list - which is also why you do not see mysql's "using a password on
 the command line interface can be insecure" warning.
 
-Four things these scripts know that a hand-written command line usually does
+Five things these scripts know that a hand-written command line usually does
 not:
 
 - **`mysql < file.sql` does not work in PowerShell.** `<` is reserved, and the
@@ -33,6 +33,12 @@ not:
 - **`source` exits 0 even when statements inside the file failed.**
   `--abort-source-on-error` is passed everywhere, and probed for first, because
   an older client does not have it.
+- **`mangosd --version` says nothing about the playerbots module.** That
+  revision is the core repository's. The module is a separate checkout and can
+  be several commits ahead of the binary with the version string looking
+  perfectly current. `Test-Setup.ps1` compares the binary's timestamp against
+  the newest `playerbot/**/*.cpp` and `*.h` instead, which is a question
+  timestamps can actually answer.
 - **A connection refused and a rejected password are different problems.**
   MySQL says 2003 for one and 1045 for the other; the scripts read the number
   and say which. Reachability is checked before the password prompt, so a

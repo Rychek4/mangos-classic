@@ -219,7 +219,10 @@ REALM_DB_NAME="classicrealmd"
 CHAR_DB_NAME="classiccharacters"
 LOGS_DB_NAME="classiclogs"
 MYSQL_PATH="$((ConvertTo-MsysPath $mysql))"
-MYSQL_DUMP_PATH=""
+## Left empty this becomes `"" --version` on line 905 of the installer, which
+## prints "command not found" and carries on. Harmless, but it is noise, and
+## the backup commands need a real path anyway.
+MYSQL_DUMP_PATH="$((ConvertTo-MsysPath (Join-Path (Split-Path $mysql) "mysqldump.exe")))"
 CORE_PATH="$((ConvertTo-MsysPath $CorePath))"
 LOCALES="YES"
 FORCE_WAIT="NO"

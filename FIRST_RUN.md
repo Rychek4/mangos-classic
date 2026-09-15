@@ -237,6 +237,13 @@ cd C:\wow\mangos-classic\setup
 Every line should be green. This script only reads; it changes nothing, so run
 it as often as you like. It is faster than reading a log.
 
+One of its checks is worth knowing about in advance. `mangosd.exe --version`
+prints the revision of the **core** repository. The playerbots module is a
+separate checkout, so that string can look perfectly current while the module
+compiled into the binary is several commits behind. `Test-Setup.ps1` compares
+the binary's timestamp against the newest file in `playerbots\playerbot`
+instead, and tells you to rebuild if the source is newer.
+
 ---
 
 ## Step 5: start the server and make yourself an account

@@ -15,6 +15,7 @@
 [CmdletBinding()]
 param(
     [string] $ServerPath = "C:\wow\server",
+    [string] $PlayerbotsPath = "C:\wow\playerbots",
     [string] $MySqlPath  = "",
     [string] $DbUser     = "mangos",
     [string] $DbPassword = "mangos",
@@ -53,6 +54,34 @@ if (Test-Path (Join-Path $ServerPath "mangosd.exe")) {
     } catch {
         Bad "mangosd.exe will not run: $($_.Exception.Message)"
         Write-Note "Usually a missing Visual C++ runtime. Install the x64 redistributable."
+    }
+}
+
+<#
+    Is the installed binary older than the module source it was built from?
+
+    mangosd's --version prints the CORE repository's revision, and the
+    playerbots module is a separate checkout, so that string says nothing about
+    which version of the module is compiled in. It can be perfectly current and
+    the module three commits behind. Timestamps can answer what the revision
+    string cannot.
+#>
+if (Test-Path (Join-Path $ServerPath "mangosd.exe")) {
+    $binary = (Get-Item (Join-Path $ServerPath "mangosd.exe")).LastWriteTime
+    $sources = Get-ChildItem -Path (Join-Path $PlayerbotsPath "playerbot") -Recurse -File `
+                             -Include *.cpp, *.h -ErrorAction SilentlyContinue
+    $newest = $sources | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    if (-not $newest) {
+        Write-Note "no playerbots sources at $PlayerbotsPath; skipping the staleness check"
+    } elseif ($newest.LastWriteTime -gt $binary) {
+        Write-Warn "mangosd.exe is older than the playerbots source it was built from."
+        Write-Note "installed : $($binary.ToString('yyyy-MM-dd HH:mm'))"
+        Write-Note "newest    : $($newest.LastWriteTime.ToString('yyyy-MM-dd HH:mm'))  $($newest.Name)"
+        Write-Note "Rebuild and reinstall, or the module running is not the one you pulled:"
+        Write-Note "    cmake --build build --config Release --parallel"
+        Write-Note "    cmake --install build --config Release"
+    } else {
+        Write-Good "the installed binary is newer than the module source"
     }
 }
 
