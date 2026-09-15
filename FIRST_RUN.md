@@ -327,10 +327,15 @@ run it. Then, in a new window:
 ```powershell
 cd C:\wow\Azeroth_Narrator
 pip install -e ".[dev,ui]"
-narrator doctor --llm openai:http://127.0.0.1:8080/v1 --watch 30
+python -m narrator doctor --llm openai:http://127.0.0.1:8080/v1 --watch 30
 ```
 
-`narrator doctor` connects to the running server and tells you what actually
+(`python -m narrator` rather than plain `narrator`: on Windows, `narrator` is
+the screen reader in System32, which wins the PATH search over anything pip
+installs. Running it as a module sidesteps that. `narrator-ui` does not
+collide and is used as written.)
+
+`python -m narrator doctor` connects to the running server and tells you what actually
 works: the link and its handshake, the round trip, who is online, which events
 arrive while it watches, whether the random bot pool has anyone in it, and how
 fast the model answers. It changes nothing unless you pass `--act`. It is the
@@ -340,7 +345,7 @@ meant to be copied and pasted.
 Then the real thing:
 
 ```powershell
-narrator run --llm openai:http://127.0.0.1:8080/v1 --record first-session.jsonl
+python -m narrator run --llm openai:http://127.0.0.1:8080/v1 --record first-session.jsonl
 narrator-ui
 ```
 
@@ -429,11 +434,11 @@ unlike the other configs, so it has to be exactly there. Run
 sets it. If it still does not appear, the installed `mangosd.exe` was built
 before the bridge existed — rebuild.
 
-**`narrator doctor` says the bridge did not answer.**
+**`python -m narrator doctor` says the bridge did not answer.**
 The server is not running, or it is running without the bridge. Check for that
 line in the log first; the doctor cannot tell those two apart from outside.
 
-**`narrator doctor` says the random-bot pool is empty.**
+**`python -m narrator doctor` says the random-bot pool is empty.**
 This is the one that breaks everything quietly. With no roster the narrator has
 nobody to cast, so every scene is skipped and nothing appears to be wrong.
 Give the server ten minutes after its first start and check again.
@@ -484,7 +489,7 @@ then your language model, then:
 
 ```powershell
 cd C:\wow\Azeroth_Narrator
-narrator run --llm openai:http://127.0.0.1:8080/v1
+python -m narrator run --llm openai:http://127.0.0.1:8080/v1
 narrator-ui
 ```
 

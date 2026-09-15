@@ -279,7 +279,7 @@ Then, from the narrator checkout:
 ```powershell
 cd C:\wow\Azeroth_Narrator
 pip install -e ".[dev,ui]"
-narrator run --llm openai:http://127.0.0.1:8080/v1 --record first-session.jsonl
+python -m narrator run --llm openai:http://127.0.0.1:8080/v1 --record first-session.jsonl
 narrator-ui
 ```
 
@@ -306,7 +306,7 @@ needs updating. `setup\Test-Setup.ps1` reports the state of all four.
 From the narrator checkout, against the running server:
 
 ```powershell
-narrator doctor --llm openai:http://127.0.0.1:8080/v1 --watch 30
+python -m narrator doctor --llm openai:http://127.0.0.1:8080/v1 --watch 30
 ```
 
 It reports the link and its handshake, the round trip, `scene.get`,
@@ -319,7 +319,7 @@ data, configs, database row counts, open ports.
 ## What success looks like
 
 - `mangosd` logs `Bridge: listening on 127.0.0.1:8890 (protocol 1)` at startup.
-- `narrator run` logs that it connected and asked for a scene.
+- `python -m narrator run` logs that it connected and asked for a scene.
 - The console window's Link tab shows both links up and a rising sequence number.
 - The overlay shows party chat, and typing in it puts words in your character's mouth.
 - After a minute of quiet with two companions present, one of them says something.
