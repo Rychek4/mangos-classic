@@ -146,8 +146,8 @@ bool SpellStacker::IsStackableAuraEffect(SpellEntry const* entry, SpellEntry con
     auto secondItr = m_spellGroupSpellData.find(entry2->Id);
     if (firstItr != m_spellGroupSpellData.end() && secondItr != m_spellGroupSpellData.end())
     {
-        int wellFedIndex = 1 << (((int)SpellGroupId::WELL_FED) - 1);
-        if ((firstItr->second.mask & wellFedIndex) != 0 && (secondItr->second.mask & wellFedIndex) == 0)
+        auto wellFedFlag = convertEnumToFlag(SpellGroupId::WELL_FED);
+        if (firstItr->second.HasFlag(wellFedFlag) && !secondItr->second.HasFlag(wellFedFlag))
             return true;
     }
 
@@ -158,8 +158,11 @@ bool SpellStacker::IsStackableAuraEffect(SpellEntry const* entry, SpellEntry con
     const bool player = (entry->SpellFamilyName && !entry->SpellFamilyFlags.Empty());
     const bool multirank = (related && siblings && player);
     const bool instance = (entry->Id == entry2->Id || multirank);
-    const bool icon = (entry->SpellIconID == entry2->SpellIconID); // Old bad practice, but a few old spells detection may still depend on it
-    const bool visual = (entry->SpellVisual == entry2->SpellVisual); // Old bad practice, but a few old spells detection may still depend on it
+
+    // HACK:
+    // Old, bad practice, but the detection of a few old spells may still depend on it
+    const bool icon = (entry->SpellIconID == entry2->SpellIconID);
+    const bool visual = entry->SpellVisual == entry2->SpellVisual;
 
     // If aura makes spell not multi-instanceable (do not stack the same spell id or ranks of this spell)
     bool nonmui = false;

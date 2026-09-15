@@ -342,14 +342,8 @@ void UnitAI::HandleMovementOnAttackStart(Unit* victim, bool targetChange) const
 
         MotionMaster* creatureMotion = m_unit->GetMotionMaster();
 
-        if (!m_unit->hasUnitState(UNIT_STAT_NO_COMBAT_MOVEMENT) && !m_unit->hasUnitState(UNIT_STAT_PROPELLED))
+        if (!m_unit->hasUnitState(UNIT_STAT_PROPELLED))
             creatureMotion->MoveChase(victim, m_attackDistance, m_attackAngle, m_moveFurther, false, true, targetChange);
-        // TODO - adapt this to only stop OOC-MMGens when MotionMaster rewrite is finished
-        else if (creatureMotion->GetCurrentMovementGeneratorType() == WAYPOINT_MOTION_TYPE || creatureMotion->GetCurrentMovementGeneratorType() == RANDOM_MOTION_TYPE)
-        {
-            creatureMotion->MoveIdle();
-            m_unit->InterruptMoving();
-        }
     }
 }
 
@@ -592,9 +586,9 @@ class AiDelayEventAround : public BasicEvent
             if (!pInvoker)
                 return true;
 
-            for (GuidVector::const_reverse_iterator itr = m_receiverGuids.rbegin(); itr != m_receiverGuids.rend(); ++itr)
+            for (ObjectGuid guid : m_receiverGuids)
             {
-                if (Creature* pReceiver = m_owner.GetMap()->GetAnyTypeCreature(*itr))
+                if (Creature* pReceiver = m_owner.GetMap()->GetAnyTypeCreature(guid))
                 {
                     pReceiver->AI()->ReceiveAIEvent(m_eventType, &m_owner, pInvoker, m_miscValue);
                     // Special case for type 0 (call-assistance)
@@ -728,30 +722,30 @@ CreatureList UnitAI::DoFindFriendlyEligibleDispel(SpellEntry const* spellInfo, b
         if (spellInfo->Effect[i] == SPELL_EFFECT_DISPEL)
             dispelMask |= GetDispellMask(DispelType(spellInfo->EffectMiscValue[i]));
         else if (spellInfo->Effect[i] == SPELL_EFFECT_DISPEL_MECHANIC)
-            mechanicMask |= (1 << (spellInfo->EffectMiscValue[i] - 1));
+            mechanicMask |= convertEnumToFlag(spellInfo->EffectMiscValue[i]);
     }            
     float maxRange = CalculateSpellRange(spellInfo);
     return DoFindFriendlyEligibleDispel(maxRange, dispelMask, mechanicMask, self);
 }
 
-CreatureList UnitAI::DoFindFriendlyMissingBuff(float range, uint32 spellId, bool inCombat, bool self) const
+CreatureList UnitAI::DoFindFriendlyMissingBuff(float /*range*/, uint32 spellId, bool inCombat, bool self, uint32 spawnGroupId) const
 {
-    return DoFindFriendlyMissingBuff(sSpellTemplate.LookupEntry<SpellEntry>(spellId), inCombat, self);
+    return DoFindFriendlyMissingBuff(sSpellTemplate.LookupEntry<SpellEntry>(spellId), inCombat, self, spawnGroupId);
 }
 
-CreatureList UnitAI::DoFindFriendlyMissingBuff(SpellEntry const* spellInfo, bool inCombat, bool self) const
+CreatureList UnitAI::DoFindFriendlyMissingBuff(SpellEntry const* spellInfo, bool inCombat, bool self, uint32 spawnGroupId) const
 {
     CreatureList list;
     float maxRange = CalculateSpellRange(spellInfo);
     if (inCombat == false)
     {
-        MaNGOS::FriendlyMissingBuffInRangeNotInCombatCheck u_check(m_unit, maxRange, spellInfo->Id);
+        MaNGOS::FriendlyMissingBuffInRangeNotInCombatCheck u_check(m_unit, maxRange, spellInfo->Id, spawnGroupId);
         MaNGOS::CreatureListSearcher<MaNGOS::FriendlyMissingBuffInRangeNotInCombatCheck> searcher(list, u_check);
         Cell::VisitGridObjects(m_unit, searcher, maxRange);
     }
     else if (inCombat == true)
     {
-        MaNGOS::FriendlyMissingBuffInRangeInCombatCheck u_check(m_unit, maxRange, spellInfo->Id);
+        MaNGOS::FriendlyMissingBuffInRangeInCombatCheck u_check(m_unit, maxRange, spellInfo->Id, spawnGroupId);
         MaNGOS::CreatureListSearcher<MaNGOS::FriendlyMissingBuffInRangeInCombatCheck> searcher(list, u_check);
         Cell::VisitGridObjects(m_unit, searcher, maxRange);
     }
@@ -910,6 +904,7 @@ void UnitAI::ClearCombatOnlyRoot()
 {
     if (m_combatOnlyRoot)
     {
+        m_unit->clearUnitState(UNIT_STAT_AI_ROOT);
         m_unit->SetImmobilizedState(false);
         m_combatOnlyRoot = false;
     }

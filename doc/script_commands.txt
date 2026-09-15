@@ -182,7 +182,7 @@ Defining a buddy could be done in several way:
  3 SCRIPT_COMMAND_MOVE_TO                   resultingSource = Creature
                                             If position is very near to current position, or x=y=z=0, then only orientation is changed
                                             * datalong = dbscripts_on_relay id - executed for source and target same as this script
-                                            * datalong2 = travel_speed*100 (use 0 for creature default movement)
+                                            * datalong2 = 0x2 make it main movegen and persist through combat evade
                                             * datalong3 = enum ForcedMovement
                                             * data_flags & SCRIPT_FLAG_COMMAND_ADDITIONAL: teleport unit to position
                                             * x/y/z/o
@@ -366,6 +366,7 @@ Defining a buddy could be done in several way:
                                               Ignore bounding radius for datalong3 use
                                             * dataint1 = enum ForcedMovement
                                             * dataint2 = dbscripts_on_relay id
+                                            * dataint3 = 0x1 to make it main movegen and persist through combat evade
 
 38 SCRIPT_COMMAND_SEND_MAIL                 Send a mail from resSource  to resTarget
                                             * resultingSource = Creature OR NULL, resTarget must be Player
@@ -450,3 +451,8 @@ Defining a buddy could be done in several way:
                                             * datalong = string_id id
                                             * apply = 0 remove, 1 add
 
+56 57 used in wotlk
+
+58 SCRIPT_COMMAND_SPAWN_SPAWN_GROUP	    Spawns the spawn_group
+                                            * datalong = spawn_group.id
+                                            * datalong2 = despawn-delay - Time to despawn group

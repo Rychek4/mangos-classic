@@ -22,25 +22,36 @@ if(BUILD_GAME_SERVER OR BUILD_LOGIN_SERVER OR BUILD_EXTRACTORS)
 endif()
 
 # Playerbots module
+#
+# By default the module is fetched from this fork's own playerbots repository.
+# Override either value at configure time to build against another source:
+#   -DPLAYERBOTS_GIT_REPOSITORY=https://github.com/cmangos/playerbots.git
+#   -DPLAYERBOTS_GIT_TAG=<branch, tag or commit>
+# To compile a local checkout instead of fetching (day-to-day development), use
+# CMake's standard FetchContent override; no download happens at all:
+#   -DFETCHCONTENT_SOURCE_DIR_PLAYERBOTS=/path/to/playerbots
 if(BUILD_PLAYERBOTS)
   include(FetchContent)
+
+  set(PLAYERBOTS_GIT_REPOSITORY "https://github.com/Rychek4/playerbots.git"
+      CACHE STRING "Git repository the PlayerBots module is fetched from")
+  set(PLAYERBOTS_GIT_TAG "master"
+      CACHE STRING "Branch, tag or commit of the PlayerBots module to fetch")
 
   FetchContent_Declare(
     PlayerBots
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/modules/PlayerBots"
-    GIT_REPOSITORY "https://github.com/cmangos/playerbots.git"
-    GIT_TAG "master"
+    GIT_REPOSITORY "${PLAYERBOTS_GIT_REPOSITORY}"
+    GIT_TAG "${PLAYERBOTS_GIT_TAG}"
   )
 
-  FetchContent_GetProperties(PlayerBots)
-  if (NOT playerbots_POPULATED)
-    FetchContent_Populate(PlayerBots)
-    message(STATUS "Playerbots module source dir: ${playerbots_SOURCE_DIR}")
-  else()
-    message(STATUS "Playerbots module already populated: ${playerbots_POPULATED}")
-  endif()
-
-  add_subdirectory(${playerbots_SOURCE_DIR})
+  # MakeAvailable populates and then adds the module's subdirectory with both
+  # its source and its binary dir, which is what a source dir outside this
+  # tree (the FETCHCONTENT_SOURCE_DIR_PLAYERBOTS override) needs. The older
+  # FetchContent_Populate(<name>) form does the same thing but CMake 4
+  # deprecates it and will remove it.
+  FetchContent_MakeAvailable(PlayerBots)
+  message(STATUS "Playerbots module source dir: ${playerbots_SOURCE_DIR}")
 
 else()
   if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modules/PlayerBots)

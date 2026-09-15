@@ -498,8 +498,15 @@ bool LootItem::AllowedForPlayer(Player const* player, WorldObject const* lootTar
 
 LootSlotType LootItem::GetSlotTypeForSharedLoot(Player const* player, Loot const* loot) const
 {
+    // The master looter has to see conditional items above the threshold in order to
+    // distribute them, even when he does not fulfill the condition himself. The
+    // receiver is still checked in HandleLootMasterGiveOpcode.
+    bool const isMasterForConditionalOverThreshold = loot->m_lootMethod == MASTER_LOOT && !isUnderThreshold &&
+                                                    lootItemType == LOOTITEM_TYPE_CONDITIONNAL &&
+                                                    player->GetObjectGuid() == loot->m_masterOwnerGuid;
+
     // Check if still have right to pick this item
-    if (!IsAllowed(player, loot))
+    if (!IsAllowed(player, loot) && !isMasterForConditionalOverThreshold)
         return MAX_LOOT_SLOT_TYPE;
 
     if (freeForAll)
@@ -1005,8 +1012,9 @@ bool Loot::FillLoot(uint32 loot_id, LootStore const& store, Player* lootOwner, b
             {
                 case MASTER_LOOT:
                 {
-                    // roll item if masterloot is not in the list or if masterloot have no right for this item
-                    if (!masterLooter || lootItem->allowedGuid.find(m_masterOwnerGuid) == lootItem->allowedGuid.end())
+                    // roll item only if there is no masterloot to distribute it. Not meeting the
+                    // item condition does not prevent him from giving it to an eligible player.
+                    if (!masterLooter)
                         lootItem->isBlocked = true;
                     break;
                 }
@@ -2141,7 +2149,7 @@ bool Loot::AutoStore(Player* player, bool broadcast /*= false*/, uint32 bag /*= 
             msg = player->CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, lootItem->itemId, lootItem->count);
         if (msg != EQUIP_ERR_OK)
         {
-            player->SendEquipError(msg, nullptr, nullptr, lootItem->itemId);
+            player->SendEquipError(msg, nullptr, nullptr, 0, lootItem->itemId);
             result = false;
             continue;
         }
@@ -2271,6 +2279,8 @@ void Loot::SendGold(Player* player)
     else
     {
         player->ModifyMoney(m_gold);
+
+        // Known deviation from WoW Classic Era: do not send SMSG_LOOT_MONEY_NOTIFY for solo money loot
 
         if (m_guidTarget.IsItem())
         {

@@ -39,6 +39,7 @@ INSERT INTO spell_scripts(Id, ScriptName) VALUES
 (8655,'spell_tribal_death'),
 (8894,'spell_tribal_death'),
 (9144,'spell_tribal_death'),
+(15782,'spell_tribal_death'),
 (9204,'spell_hate_to_zero'),
 (20538,'spell_hate_to_zero'),
 (26569,'spell_hate_to_zero'),
@@ -47,7 +48,6 @@ INSERT INTO spell_scripts(Id, ScriptName) VALUES
 (10252,'spell_awaken_earthen_archaedas'),
 (10258,'spell_awaken_vault_warder'),
 (10259,'spell_awaken_earthen_archaedas'),
-(27978,'spell_shroud_of_death'),
 (11402,'spell_shays_bell'),
 (11403,'spell_dream_vision'),
 (11511,'spell_activate_bomb_thermaplugg'),
@@ -67,14 +67,18 @@ INSERT INTO spell_scripts(Id, ScriptName) VALUES
 (13278,'spell_gdr_channel'),
 (13493,'spell_gdr_periodic'),
 (14250,'spell_capture_grark'),
-(16380,'spell_greater_invisibility_mob'),
+(15712,'spell_linkens_boomerang'),
+(16380,'spell_detect_through_invisibility_mob'),
 (16510,'spell_corrupted_saber_visual'),
 (16739,'spell_orb_of_deception'),
 (17016,'spell_placing_beacon_torch'),
+(17162,'spell_summon_water_elemental'),
 (17244,'spell_anastari_possess'),
 (17536,'spell_awaken_kerlonian'),
 (18153,'spell_kodo_kombobulator'),
 (18969,'spell_taelan_death'),
+(19134,'spell_intimidating_shout'),
+(19636,'spell_fire_blossom'),
 (19707,'spell_hate_to_half'),
 (19832,'spell_possess_razorgore'),
 (19872,'spell_calm_dragonkin'),
@@ -280,7 +284,6 @@ INSERT INTO spell_scripts(Id, ScriptName) VALUES
 
 -- Wotlk
 
-
 -- Priest
 INSERT INTO spell_scripts(Id, ScriptName) VALUES
 (527,'spell_dispel_magic_priest'),
@@ -304,9 +307,10 @@ INSERT INTO spell_scripts(Id, ScriptName) VALUES
 (5373,'spell_judgement_of_light_intermediate'),
 (1826,'spell_judgement_of_wisdom_intermediate'),
 (19752,'spell_divine_intervention'),
-(19977,'spell_blessing_of_light'),
+(19977,'spell_blessing_of_light'), -- Blessing of Light
 (19978,'spell_blessing_of_light'),
 (19979,'spell_blessing_of_light'),
+(25890,'spell_blessing_of_light'), -- Greater Blessing of Light
 (20271,'spell_judgement'),
 (20467,'spell_judgement_of_command'),
 (20963,'spell_judgement_of_command'),
@@ -345,6 +349,7 @@ INSERT INTO spell_scripts(Id, ScriptName) VALUES
 
 -- Warrior
 INSERT INTO spell_scripts(Id, ScriptName) VALUES
+(5246,'spell_intimidating_shout'),
 (5308,'spell_warrior_execute'),
 (20658,'spell_warrior_execute'),
 (20660,'spell_warrior_execute'),
@@ -355,11 +360,6 @@ INSERT INTO spell_scripts(Id, ScriptName) VALUES
 
 -- Mage
 INSERT INTO spell_scripts(Id, ScriptName) VALUES
-(11213,'spell_arcane_concentration'),
-(12574,'spell_arcane_concentration'),
-(12575,'spell_arcane_concentration'),
-(12576,'spell_arcane_concentration'),
-(12577,'spell_arcane_concentration'),
 (11170,'spell_shatter_mage'),
 (12982,'spell_shatter_mage'),
 (12983,'spell_shatter_mage'),
@@ -424,12 +424,7 @@ INSERT INTO spell_scripts(Id, ScriptName) VALUES
 (8516,'spell_windfury_totem_aura'),
 (10608,'spell_windfury_totem_aura'),
 (10610,'spell_windfury_totem_aura'),
-(6495,'spell_sentry_totem');
-
--- Hunter
-INSERT INTO spell_scripts(Id, ScriptName) VALUES
-(1515,'spell_tame_beast_channel'),
-(13535,'spell_tame_beast_dummy'),
+(6495,'spell_sentry_totem'),
 (8017,'spell_rockbiter_weapon_selector'),
 (8018,'spell_rockbiter_weapon_selector'),
 (8019,'spell_rockbiter_weapon_selector'),
@@ -437,6 +432,25 @@ INSERT INTO spell_scripts(Id, ScriptName) VALUES
 (16314,'spell_rockbiter_weapon_selector'),
 (16315,'spell_rockbiter_weapon_selector'),
 (16316,'spell_rockbiter_weapon_selector');
+
+-- Hunter
+INSERT INTO spell_scripts(Id, ScriptName) VALUES
+(1515,'spell_tame_beast_channel'),
+(13535,'spell_tame_beast_dummy'),
+(19597, 'spell_taming_pet_rod'),
+(19676, 'spell_taming_pet_rod'),
+(19677, 'spell_taming_pet_rod'),
+(19678, 'spell_taming_pet_rod'),
+(19679, 'spell_taming_pet_rod'),
+(19680, 'spell_taming_pet_rod'),
+(19681, 'spell_taming_pet_rod'),
+(19682, 'spell_taming_pet_rod'),
+(19683, 'spell_taming_pet_rod'),
+(19684, 'spell_taming_pet_rod'),
+(19685, 'spell_taming_pet_rod'),
+(19686, 'spell_taming_pet_rod'),
+(19572,'spell_improved_mend_pet'),
+(19573,'spell_improved_mend_pet');
 
 -- Food and Drink
 INSERT INTO spell_scripts(Id, ScriptName) VALUES

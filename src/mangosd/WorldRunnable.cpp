@@ -80,7 +80,8 @@ void WorldRunnable::run()
     ///- While we have not World::m_stopEvent, update the world
     while (!World::IsStopped())
     {
-        ++World::m_worldLoopCounter;
+//        ++World::m_worldLoopCounter;
+        World::m_worldLoopCounter = World::m_worldLoopCounter + 1;
 
         diffTick = WorldTimer::tick();
         sWorld.Update(diffTick);
@@ -96,7 +97,7 @@ void WorldRunnable::run()
         else
         {
             ++overCounter;
-            sLog.outString("WorldRunnable:run Long loop #%d : %dms (total : %d loop(s), %.3f%%)", World::m_worldLoopCounter, diffTime, overCounter, (float)(100*overCounter) / (float)World::m_worldLoopCounter);
+            sLog.outString("WorldRunnable:run Long loop #%d : %dms (total : %d loop(s), %.3f%%)", World::m_worldLoopCounter.load(), diffTime, overCounter, (float)(100*overCounter) / (float)World::m_worldLoopCounter.load());
         }
 #endif
 

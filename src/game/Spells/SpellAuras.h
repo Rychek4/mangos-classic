@@ -495,7 +495,7 @@ class Aura
         // hooks
         void OnAuraInit();
         int32 OnAuraValueCalculate(Unit* caster, int32 currentValue, Item* castItem);
-        void OnDamageCalculate(Unit* victim, Unit* attacker, int32& advertisedBenefit, float& totalMod);
+        void OnDamageCalculate(Unit* attacker, Unit* victim, int32& advertisedBenefit, float& totalMod);
         void OnCritChanceCalculate(Unit const* victim, float& chance, SpellEntry const* spellInfo);
         void OnApply(bool apply);
         void OnAfterApply(bool apply);
@@ -569,7 +569,7 @@ class AreaAura : public Aura
 {
     public:
         AreaAura(SpellEntry const* spellproto, SpellEffectIndex eff, int32 const* currentDamage, int32 const* currentBasePoints, SpellAuraHolder* holder, Unit* target, Unit* caster = nullptr, Item* castItem = nullptr, uint32 originalRankSpellId = 0);
-        virtual ~AreaAura();
+        virtual ~AreaAura() override;
 
         bool OnAreaAuraCheckTarget(Unit* target) const;
     protected:
@@ -584,7 +584,7 @@ class PersistentAreaAura : public Aura
 {
     public:
         PersistentAreaAura(SpellEntry const* spellproto, SpellEffectIndex eff, int32 const* currentDamage, int32 const* currentBasePoints, SpellAuraHolder* holder, Unit* target, Unit* caster = nullptr, Item* castItem = nullptr);
-        virtual ~PersistentAreaAura();
+        virtual ~PersistentAreaAura() override;
     protected:
         void Update(uint32 diff) override;
 };
@@ -594,7 +594,7 @@ class SingleEnemyTargetAura : public Aura
         friend Aura* CreateAura(SpellEntry const* spellproto, SpellEffectIndex eff, int32 const* currentDamage, int32 const* currentBasePoints, SpellAuraHolder* holder, Unit* target, Unit* caster, Item* castItem);
 
     public:
-        virtual ~SingleEnemyTargetAura();
+        virtual ~SingleEnemyTargetAura() override;
         Unit* GetTriggerTarget() const override;
 
     protected:

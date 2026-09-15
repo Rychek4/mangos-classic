@@ -33,8 +33,14 @@ PlayerAI::PlayerAI(Player* player) : UnitAI(player), m_player(player), m_spellsD
     AddCustomAction(GENERIC_THREAT_CHANGE, true, [&]() { m_executeTargetChange = true; });
 }
 
+void PlayerAI::ExecuteActions()
+{
+    ExecuteSpells();
+}
+
 void PlayerAI::AddPlayerSpellAction(uint32 spellId, std::function<Unit*()> selector)
 {
+    bool failureOnNoTarget = false;
     if (!selector)
     {
         SpellEntry const* spellInfo = sSpellTemplate.LookupEntry<SpellEntry>(spellId);
@@ -43,14 +49,16 @@ void PlayerAI::AddPlayerSpellAction(uint32 spellId, std::function<Unit*()> selec
             if (IsNextMeleeSwingSpell(spellInfo))
                 selector = [&]()->Unit* { return m_player->GetVictim(); };
             else if (HasSpellTarget(spellInfo, TARGET_UNIT_ENEMY) || (spellInfo->Targets & TARGET_FLAG_DEST_LOCATION)) // always random
-                selector = [&, spellId = spellInfo->Id]()->Unit* { return m_player->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0, spellId, SELECT_FLAG_PLAYER); };
+                selector = [&, spellId = spellInfo->Id]()->Unit* { return m_player->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0, spellId, SELECT_FLAG_IN_LOS); };
             if (HasSpellTarget(spellInfo, TARGET_UNIT_FRIEND) || HasSpellTarget(spellInfo, TARGET_UNIT_FRIEND_CHAIN_HEAL)) // heals only target self
                 selector = [&]()->Unit* { return m_player; };
+
+            failureOnNoTarget = (spellInfo->Targets & TARGET_FLAG_DEST_LOCATION) != 0;
         }
         if (!selector) // fallback
             selector = [&]()->Unit* { return nullptr; };
     }
-    m_playerSpellActions.emplace_back(spellId, selector);
+    m_playerSpellActions.emplace_back(spellId, failureOnNoTarget, selector);
 }
 
 void PlayerAI::ExecuteSpells()
@@ -71,8 +79,13 @@ void PlayerAI::ExecuteSpells()
 
     bool success = false;
     for (auto& data : m_playerSpellActions)
-        if (DoCastSpellIfCan(data.targetFinder(), data.spellId) == CAST_OK)
-            success = true;            
+    {
+        Unit* target = data.targetFinder();
+        if (data.failureOnNoTarget && target == nullptr)
+            continue;
+        if (DoCastSpellIfCan(target, data.spellId) == CAST_OK)
+            success = true;  
+    }          
 
     if (success)
     {

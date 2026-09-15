@@ -204,6 +204,37 @@ if(POLICY CMP0167)
   cmake_policy(SET CMP0167 NEW)
 endif()
 
+# The prebuilt Windows Boost packages keep their CMake package files in a
+# toolset-specific directory, lib64-msvc-14.3/cmake/Boost-<version>. CMake's
+# own prefix search never looks there: the "lib*" it searches means lib, lib32,
+# lib64 and libx32 and nothing else. That did not matter while FindBoost could
+# fall back to headers and library globs, but CMake 4 removed FindBoost, so
+# find_package(Boost) is config-only and a BOOST_ROOT pointing at such a tree
+# fails outright. Find the package directory under BOOST_ROOT ourselves when
+# the caller has not named one.
+if(NOT Boost_DIR)
+  set(_boost_hint "${BOOST_ROOT}")
+  if(NOT _boost_hint)
+    set(_boost_hint "$ENV{BOOST_ROOT}")
+  endif()
+  if(_boost_hint)
+    file(TO_CMAKE_PATH "${_boost_hint}" _boost_hint)
+    file(GLOB _boost_pkg_dirs "${_boost_hint}/lib*/cmake/Boost-*" "${_boost_hint}/cmake/Boost-*")
+    list(SORT _boost_pkg_dirs)
+    list(REVERSE _boost_pkg_dirs)   # prefer the highest version present
+    foreach(_boost_pkg_dir IN LISTS _boost_pkg_dirs)
+      if(EXISTS "${_boost_pkg_dir}/BoostConfig.cmake")
+        set(Boost_DIR "${_boost_pkg_dir}" CACHE PATH "Directory containing BoostConfig.cmake")
+        message(STATUS "Boost package directory: ${Boost_DIR}")
+        break()
+      endif()
+    endforeach()
+    unset(_boost_pkg_dir)
+    unset(_boost_pkg_dirs)
+  endif()
+  unset(_boost_hint)
+endif()
+
 # Find needed packages and if necessery abort if something important is missing
 find_package(Boost 1.70.0 REQUIRED COMPONENTS program_options thread regex serialization filesystem)
 

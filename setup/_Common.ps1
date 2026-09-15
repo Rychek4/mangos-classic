@@ -1,0 +1,357 @@
+<#
+    Shared helpers for the setup scripts in this folder. Dot-sourced, not run
+    on its own:
+
+        . (Join-Path $PSScriptRoot "_Common.ps1")
+
+    Nothing here touches the database or the world. It finds tools, converts
+    paths and prints in a consistent shape, so the scripts that do the work
+    stay short enough to read.
+#>
+
+$script:StepNumber = 0
+
+function Write-Step([string] $Message) {
+    $script:StepNumber++
+    Write-Host ""
+    Write-Host ("  {0}. {1}" -f $script:StepNumber, $Message) -ForegroundColor Cyan
+}
+
+function Write-Good([string] $Message) { Write-Host "     ok    $Message" -ForegroundColor Green }
+function Write-Note([string] $Message) { Write-Host "           $Message" -ForegroundColor Gray }
+function Write-Warn([string] $Message) { Write-Host "     note  $Message" -ForegroundColor Yellow }
+function Write-Bad ([string] $Message) { Write-Host "     STOP  $Message" -ForegroundColor Red }
+
+function Fail([string] $Message) {
+    Write-Bad $Message
+    exit 1
+}
+
+<#
+    mysql.exe is usually not on PATH after a default MySQL install, which is
+    the first thing that stops people. Look where the installer puts it before
+    giving up.
+#>
+function Find-MySql {
+    param([string] $Hint = "")
+
+    if ($Hint) {
+        if (Test-Path $Hint) { return (Resolve-Path $Hint).Path }
+        Write-Warn "-MySqlPath '$Hint' does not exist; looking in the usual places instead."
+    }
+    foreach ($name in @("mysql.exe", "mysql")) {
+        $onPath = Get-Command $name -ErrorAction SilentlyContinue
+        if ($onPath) { return $onPath.Source }
+    }
+
+    $roots = @("C:\Program Files\MySQL", "C:\Program Files (x86)\MySQL", "C:\tools\mysql")
+    foreach ($root in $roots) {
+        if (-not (Test-Path $root)) { continue }
+        $found = Get-ChildItem -Path $root -Filter mysql.exe -Recurse -ErrorAction SilentlyContinue |
+                 Sort-Object FullName -Descending | Select-Object -First 1
+        if ($found) { return $found.FullName }
+    }
+    return $null
+}
+
+<#
+    Git Bash, not WSL. C:\Windows\System32\bash.exe is the WSL launcher and
+    cannot see the Windows filesystem the way these scripts expect, so it is
+    ruled out by name rather than trusted because it answered first.
+#>
+function Find-GitBash {
+    foreach ($guess in @("C:\Program Files\Git\bin\bash.exe", "C:\Program Files (x86)\Git\bin\bash.exe")) {
+        if (Test-Path $guess) { return $guess }
+    }
+    $onPath = Get-Command bash.exe -ErrorAction SilentlyContinue
+    if ($onPath -and $onPath.Source -notlike "*\System32\*") { return $onPath.Source }
+    return $null
+}
+
+# C:\wow\classic-db  ->  /c/wow/classic-db, which is what Git Bash understands.
+function ConvertTo-MsysPath([string] $Path) {
+    $full = [System.IO.Path]::GetFullPath($Path)
+    return "/" + $full.Substring(0, 1).ToLower() + $full.Substring(2).Replace("\", "/")
+}
+
+# MySQL's own `source` command wants forward slashes on Windows.
+function ConvertTo-SqlPath([string] $Path) {
+    return ([System.IO.Path]::GetFullPath($Path)).Replace("\", "/")
+}
+
+$script:MySqlExtra = @()
+
+<#
+    `source file.sql` reports success even when statements inside the file
+    failed, which turns a broken install into a silent one. --abort-source-on-error
+    makes mysql stop and exit non-zero on the first error instead. Older clients
+    do not have the flag, so probe once and say so rather than assume.
+
+    (`mysql < file.sql` is not an option here: PowerShell reserves `<` and the
+    line fails before mysql starts. That is why every step uses `source`.)
+#>
+function Initialize-MySqlOptions {
+    param(
+        [Parameter(Mandatory)] [string] $MySql,
+        [string] $User = "mangos",
+        [string] $Password = "mangos"
+    )
+    $optFile = New-MySqlOptionFile $User $Password
+    try {
+        & $MySql "--defaults-extra-file=$optFile" "--abort-source-on-error" -e "SELECT 1" *> $null
+        if ($LASTEXITCODE -eq 0) {
+            $script:MySqlExtra = @("--abort-source-on-error")
+            return $true
+        }
+        & $MySql "--defaults-extra-file=$optFile" -e "SELECT 1" *> $null
+    } finally {
+        Remove-Item $optFile -Force -ErrorAction SilentlyContinue
+    }
+    if ($LASTEXITCODE -eq 0) {
+        $script:MySqlExtra = @()
+        Write-Warn "This mysql client is too old for --abort-source-on-error."
+        Write-Note "A statement that fails inside a .sql file will not stop the script."
+        Write-Note "Watch for lines beginning ERROR."
+        return $true
+    }
+    return $false
+}
+
+<#
+    A credentials file for one mysql call. Passwords given as --password=... sit
+    in the process argument list for anything on the machine to read, and mysql
+    says so every time it happens ("using a password on the command line
+    interface can be insecure"). This is its own answer to that: the caller
+    passes the file as --defaults-extra-file, which must be the first option,
+    and deletes it straight after.
+#>
+function New-MySqlOptionFile([string] $User, [string] $Password) {
+    # Option files take backslash escapes inside quoted values, so a password
+    # with a backslash or a quote in it has to be written as one.
+    $escaped = $Password -replace '\\', '\\' -replace '"', '\"'
+    $path = Join-Path ([System.IO.Path]::GetTempPath()) ("azeroth_" + [System.IO.Path]::GetRandomFileName() + ".cnf")
+    [System.IO.File]::WriteAllText($path, "[client]`nuser=$User`npassword=`"$escaped`"`n",
+                                   (New-Object System.Text.UTF8Encoding($false)))
+    return $path
+}
+
+function Invoke-SqlFile {
+    param(
+        [Parameter(Mandatory)] [string] $MySql,
+        [Parameter(Mandatory)] [string] $Database,
+        [Parameter(Mandatory)] [string] $File,
+        [string] $User = "mangos",
+        [string] $Password = "mangos"
+    )
+    $optFile = New-MySqlOptionFile $User $Password
+    try {
+        & $MySql "--defaults-extra-file=$optFile" "--default-character-set=utf8mb4" `
+                 @script:MySqlExtra $Database -e "source $(ConvertTo-SqlPath $File)"
+        return ($LASTEXITCODE -eq 0)
+    } finally {
+        Remove-Item $optFile -Force -ErrorAction SilentlyContinue
+    }
+}
+
+# Does this table exist? Used to tell "the step before this one did not run"
+# apart from "that step ran and went wrong".
+function Test-SqlTable {
+    param(
+        [Parameter(Mandatory)] [string] $MySql,
+        [Parameter(Mandatory)] [string] $Database,
+        [Parameter(Mandatory)] [string] $Table,
+        [string] $User = "mangos",
+        [string] $Password = "mangos"
+    )
+    $answer = Invoke-Sql -MySql $MySql -User $User -Password $Password -Query @"
+SELECT COUNT(*) FROM information_schema.tables
+ WHERE table_schema = '$Database' AND table_name = '$Table'
+"@
+    return ($answer -and ([int]($answer | Select-Object -First 1)) -gt 0)
+}
+
+function Test-SqlIndex {
+    param(
+        [Parameter(Mandatory)] [string] $MySql,
+        [Parameter(Mandatory)] [string] $Database,
+        [Parameter(Mandatory)] [string] $Index,
+        [string] $User = "mangos",
+        [string] $Password = "mangos"
+    )
+    $answer = Invoke-Sql -MySql $MySql -User $User -Password $Password -Query @"
+SELECT COUNT(*) FROM information_schema.statistics
+ WHERE table_schema = '$Database' AND index_name = '$Index'
+"@
+    return ($answer -and ([int]($answer | Select-Object -First 1)) -gt 0)
+}
+
+<#
+    Is anything listening? A plain TCP connect with a short timeout, because
+    Test-NetConnection spends seconds on a closed port and we ask this before
+    doing anything slow.
+#>
+function Test-Port([int] $Port, [string] $ComputerName = "127.0.0.1", [int] $TimeoutMs = 400) {
+    $client = New-Object System.Net.Sockets.TcpClient
+    try {
+        $handle = $client.BeginConnect($ComputerName, $Port, $null, $null)
+        if (-not $handle.AsyncWaitHandle.WaitOne($TimeoutMs)) { return $false }
+        $client.EndConnect($handle)
+        return $true
+    } catch {
+        return $false
+    } finally {
+        $client.Close()
+    }
+}
+
+<#
+    Run mysql as root without putting the password in the process command line,
+    where any other program on the machine can read it out of the argument list.
+    An option file passed as --defaults-extra-file is MySQL's own answer to
+    this; it must be the first option, and it is deleted straight after.
+#>
+function Invoke-SqlAsRoot {
+    param(
+        [Parameter(Mandatory)] [string] $MySql,
+        [Parameter(Mandatory)] [string] $RootPassword,
+        [Parameter(Mandatory)] [string] $File
+    )
+    $optFile = New-MySqlOptionFile "root" $RootPassword
+    try {
+        # The mangos user does not exist yet at this point, so the shared probe
+        # in Initialize-MySqlOptions cannot have run. Ask here, as root.
+        $extra = @()
+        & $MySql "--defaults-extra-file=$optFile" "--abort-source-on-error" -e "SELECT 1" *> $null
+        if ($LASTEXITCODE -eq 0) { $extra = @("--abort-source-on-error") }
+
+        $output = & $MySql "--defaults-extra-file=$optFile" @extra `
+                           -e "source $(ConvertTo-SqlPath $File)" 2>&1
+        return [pscustomobject] @{ Ok = ($LASTEXITCODE -eq 0); Output = ($output | Out-String) }
+    } finally {
+        Remove-Item $optFile -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Invoke-Sql {
+    param(
+        [Parameter(Mandatory)] [string] $MySql,
+        [Parameter(Mandatory)] [string] $Query,
+        [string] $Database = "",
+        [string] $User = "mangos",
+        [string] $Password = "mangos"
+    )
+    $optFile = New-MySqlOptionFile $User $Password
+    try {
+        $mysqlArgs = @("--defaults-extra-file=$optFile", "--batch", "--skip-column-names")
+        if ($Database) { $mysqlArgs += $Database }
+        return (& $MySql @mysqlArgs -e $Query 2>$null)
+    } finally {
+        Remove-Item $optFile -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Get-RowCount {
+    param(
+        [Parameter(Mandatory)] [string] $MySql,
+        [Parameter(Mandatory)] [string] $Database,
+        [Parameter(Mandatory)] [string] $Table,
+        [string] $User = "mangos",
+        [string] $Password = "mangos"
+    )
+    $answer = Invoke-Sql -MySql $MySql -Database $Database -User $User -Password $Password `
+                         -Query "SELECT COUNT(*) FROM ``$Table``"
+    if ($LASTEXITCODE -ne 0 -or -not $answer) { return -1 }
+    return [int]($answer | Select-Object -First 1)
+}
+
+<#
+    The four databases the core versions, and where each one's updates live.
+#>
+$script:CoreDatabases = @(
+    @{ Database = "classicmangos";     VersionTable = "db_version";           UpdateDir = "mangos" },
+    @{ Database = "classiccharacters"; VersionTable = "character_db_version"; UpdateDir = "characters" },
+    @{ Database = "classicrealmd";     VersionTable = "realmd_db_version";    UpdateDir = "realmd" },
+    @{ Database = "classiclogs";       VersionTable = "logs_db_version";      UpdateDir = "logs" }
+)
+
+<#
+    Which core update is a database at, and what does the core expect?
+
+    Every file in sql\updates\<dir>\ begins by renaming the single column of
+    that database's version table from required_<previous file> to
+    required_<this file>, so the column name IS the version. Read it, find it
+    in the sorted file list, and everything after it is what is missing.
+
+    The case worth its own answer is the column not being in the list at all:
+    the database has an update this core checkout has never heard of, so it is
+    AHEAD, and the fix is a newer core, not more SQL. The server's own message
+    for that is "your database is out of date", which is exactly backwards.
+#>
+function Get-DbVersionState {
+    param(
+        [Parameter(Mandatory)] [string] $MySql,
+        [Parameter(Mandatory)] [string] $CorePath,
+        [Parameter(Mandatory)] [string] $Database,
+        [Parameter(Mandatory)] [string] $VersionTable,
+        [Parameter(Mandatory)] [string] $UpdateDir,
+        [string] $User = "mangos",
+        [string] $Password = "mangos"
+    )
+    $files  = @(Get-ChildItem -Path (Join-Path $CorePath "sql\updates\$UpdateDir") -Filter *.sql -File -ErrorAction SilentlyContinue |
+                Sort-Object Name)
+    $newest = if ($files.Count) { $files[-1].BaseName } else { "" }
+    $column = @(Invoke-Sql -MySql $MySql -Database $Database -User $User -Password $Password -Query @"
+SELECT column_name FROM information_schema.columns
+ WHERE table_schema = '$Database' AND table_name = '$VersionTable' AND column_name LIKE 'required_%'
+"@) | Select-Object -First 1
+    if (-not $column) {
+        return [pscustomobject] @{ State = "unknown"; Have = ""; Pending = @(); Newest = $newest }
+    }
+    $have  = $column -replace '^required_', ''
+    $index = [array]::IndexOf(@($files | ForEach-Object BaseName), $have)
+    if ($index -lt 0) {
+        return [pscustomobject] @{ State = "ahead"; Have = $have; Pending = @(); Newest = $newest }
+    }
+    $pending = @($files | Select-Object -Skip ($index + 1))
+    $state   = if ($pending.Count -gt 0) { "behind" } else { "current" }
+    return [pscustomobject] @{ State = $state; Have = $have; Pending = $pending; Newest = $newest }
+}
+
+# Bring one database up to the core's revision. True if it is current afterwards.
+function Update-CoreDatabase {
+    param(
+        [Parameter(Mandatory)] [string] $MySql,
+        [Parameter(Mandatory)] [string] $CorePath,
+        [Parameter(Mandatory)] [string] $Database,
+        [Parameter(Mandatory)] [string] $VersionTable,
+        [Parameter(Mandatory)] [string] $UpdateDir,
+        [string] $User = "mangos",
+        [string] $Password = "mangos"
+    )
+    $state = Get-DbVersionState @PSBoundParameters
+    switch ($state.State) {
+        "unknown" {
+            Write-Note "$Database has no version table yet; nothing to bring up to date"
+            return $true
+        }
+        "ahead" {
+            Write-Bad "$Database is at $($state.Have), which this core checkout has never heard of."
+            Write-Note "The database is AHEAD of the core (the core's newest is $($state.Newest))."
+            Write-Note "There is no SQL to apply. Pull a newer core, rebuild, and run this again."
+            return $false
+        }
+        "current" {
+            Write-Good "$Database is current at $($state.Have)"
+            return $true
+        }
+    }
+    Write-Note "$Database is at $($state.Have); $($state.Pending.Count) update(s) to apply"
+    foreach ($file in $state.Pending) {
+        if (-not (Invoke-SqlFile -MySql $MySql -Database $Database -File $file.FullName -User $User -Password $Password)) {
+            Write-Bad "Failed applying $($file.Name) to $Database. The error is in the lines above."
+            return $false
+        }
+        Write-Good "$Database  <-  $($file.Name)"
+    }
+    return $true
+}

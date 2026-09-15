@@ -17,3 +17,7 @@ src/shared/revision_sql.h eol=lf
 
 # special files which must ignore whitespace
 *.patch      whitespace=-trailing-space
+
+# Windows setup scripts, run by cmd.exe and PowerShell
+*.ps1        eol=crlf
+*.bat        eol=crlf

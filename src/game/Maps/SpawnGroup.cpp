@@ -110,7 +110,7 @@ uint32 SpawnGroup::GetGuidEntry(uint32 dbGuid) const
 
 void SpawnGroup::Update()
 {
-    Spawn(false);
+    Spawn(false, false);
 }
 
 uint32 SpawnGroup::GetEligibleEntry(std::map<uint32, uint32>& existingEntries, std::map<uint32, uint32>& minEntries)
@@ -154,9 +154,9 @@ uint32 SpawnGroup::GetEligibleEntry(std::map<uint32, uint32>& existingEntries, s
     return 0;
 }
 
-void SpawnGroup::Spawn(bool force)
+void SpawnGroup::Spawn(bool forced, bool ignoreRespawntime)
 {
-    if (!m_enabled && !force)
+    if (!m_enabled && !forced)
         return;
 
     if (m_cooldown > m_map.GetCurrentClockTime())
@@ -235,8 +235,18 @@ void SpawnGroup::Spawn(bool force)
 
     if (m_entry.Squads.empty())
     {
-        for (auto& guid : m_entry.DbGuids)
-            eligibleGuids.push_back(&guid);
+        // once picked, only reuse
+        if (m_map.IsDungeon() && m_chosenEntries.size() == m_entry.MaxCount)
+        {
+            for (auto& guid : m_entry.DbGuids)
+                if (m_chosenEntries.find(guid.DbGuid) != m_chosenEntries.end())
+                    eligibleGuids.push_back(&guid);
+        }
+        else
+        {
+            for (auto& guid : m_entry.DbGuids)
+                eligibleGuids.push_back(&guid);            
+        }
 
         for (auto& randomEntry : m_entry.RandomEntries)
         {
@@ -283,7 +293,7 @@ void SpawnGroup::Spawn(bool force)
     {
         if (m_map.GetPersistentState()->GetObjectRespawnTime(GetObjectTypeId(), (*itr)->DbGuid) > now)
         {
-            if (!force)
+            if (!ignoreRespawntime)
             {
                 if (m_entry.MaxCount == 1) // rare mob case - prevent respawn until all are off CD
                     return;
@@ -402,7 +412,7 @@ void SpawnGroup::Spawn(bool force)
             m_map.GetPersistentState()->AddGameobjectToGrid(dbGuid, data);
         }
         AddObject(dbGuid, entry);
-        if (force || m_entry.Active || m_map.IsLoaded(x, y))
+        if (forced || m_entry.Active || m_map.IsLoaded(x, y))
         {
             if (GetObjectTypeId() == TYPEID_UNIT)
                 WorldObject::SpawnCreature(dbGuid, &m_map, entry);
@@ -534,10 +544,9 @@ void CreatureGroup::TriggerLinkingEvent(uint32 event, Unit* target)
                 uint32 dbGuid = data.first;
                 if (Creature* creature = m_map.GetCreature(dbGuid))
                 {
-                    creature->AddThreat(target);
-                    target->AddThreat(creature);
-                    target->SetInCombatWith(creature);
-                    target->GetCombatManager().TriggerCombatTimer(creature);
+                    // linking call constitutes call for assistance
+                    creature->SetNoCallAssistance(true);
+                    creature->EngageInCombatWith(target);
                 }
             }
 

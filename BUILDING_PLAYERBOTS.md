@@ -1,0 +1,141 @@
+# Building this core with the PlayerBots module
+
+This fork's build fetches the PlayerBots module from
+[`Rychek4/playerbots`](https://github.com/Rychek4/playerbots) when
+`BUILD_PLAYERBOTS` is on. The wiring is in `src/CMakeLists.txt`.
+
+Keep the repositories as sibling directories:
+
+```
+work/
+  mangos-classic/      this repository
+  playerbots/          the module
+  Azeroth_Narrator/    the control center
+```
+
+Never place a playerbots checkout at `src/modules/PlayerBots` by hand: CMake's
+fetch step deletes that directory before cloning into it.
+
+## Configure
+
+```
+# day to day: compile the sibling checkout, nothing to push first
+cmake -DBUILD_PLAYERBOTS=ON -DFETCHCONTENT_SOURCE_DIR_PLAYERBOTS=$PWD/../playerbots -B build -S .
+
+# clean build from what is pushed to the fork's master
+cmake -DBUILD_PLAYERBOTS=ON -B build -S .
+
+# another repository or ref of the module
+cmake -DBUILD_PLAYERBOTS=ON -DPLAYERBOTS_GIT_REPOSITORY=https://github.com/cmangos/playerbots.git -DPLAYERBOTS_GIT_TAG=master -B build -S .
+```
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `PLAYERBOTS_GIT_REPOSITORY` | `https://github.com/Rychek4/playerbots.git` | where the module is fetched from |
+| `PLAYERBOTS_GIT_TAG` | `master` | branch, tag or commit to fetch |
+| `FETCHCONTENT_SOURCE_DIR_PLAYERBOTS` | unset | use this local checkout instead of fetching anything |
+
+The module's narrator bridge needs `dep/json/json.hpp`, which this core ships.
+
+## Debug builds with GCC 13 and newer
+
+`src/mangosd/WorldRunnable.cpp` logs the world loop counter, a `std::atomic`,
+through a printf-style call inside `#ifdef MANGOS_DEBUG`. C++20 forbids
+copying an atomic, so Debug builds failed on recent GCC until the counter was
+read with `.load()`. Release builds never compiled that line.
+
+## Windows 11, from a PowerShell prompt
+
+What the fork's Windows CI uses, and all a fresh machine needs to compile:
+Visual Studio 2022 (the C++ workload), CMake, Git and prebuilt Boost. The
+MySQL client library and OpenSSL are shipped under `dep\lib` for Windows
+builds; nothing else is installed for the compile.
+
+1. Tools (one prompt, then close and reopen PowerShell so PATH is fresh):
+
+```powershell
+winget install --id Git.Git -e --source winget
+winget install --id Kitware.CMake -e --source winget
+winget install --id Microsoft.VisualStudio.2022.Community -e --source winget --override "--add Microsoft.VisualStudio.Workload.NativeDesktop --includeRecommended --passive --norestart"
+winget install --id Python.Python.3.12 -e --source winget   # for the narrator, not the compile
+```
+
+   The Build Tools edition (`Microsoft.VisualStudio.2022.BuildTools` with
+   `Microsoft.VisualStudio.Workload.VCTools`) is a smaller substitute when the
+   IDE is not wanted.
+
+2. Boost, prebuilt, from
+   <https://sourceforge.net/projects/boost/files/boost-binaries/>. Pick a
+   version folder (the fork's CI uses `1.87.0`; a newer release is fine, but
+   not a `_b1` beta), then the installer whose toolset matches the compiler:
+   `msvc-14.3` for Visual Studio 2022, `msvc-14.5` for Visual Studio 2026.
+   `-64` is the x64 build. The core needs 1.70 or newer and the bridge uses
+   only current Asio, so `boost_1_87_0-msvc-14.3-64.exe` is the known-good
+   choice.
+
+   The download is a self-extracting installer; nothing finds Boost until it
+   has been run. From the Downloads folder, double-click it, or:
+
+```powershell
+Start-Process "$env:USERPROFILE\Downloads\boost_1_87_0-msvc-14.3-64.exe"
+```
+
+   Windows SmartScreen may say it protected the PC: **More info**, then **Run
+   anyway**. Take the wizard's default destination, `C:\local\boost_1_87_0`,
+   and let it extract; it is a few GB and takes a few minutes. Then check the
+   result, set the variable, and **close and reopen PowerShell** so the new
+   environment is picked up:
+
+```powershell
+Test-Path C:\local\boost_1_87_0\lib64-msvc-14.3\cmake\Boost-1.87.0\BoostConfig.cmake
+[Environment]::SetEnvironmentVariable("BOOST_ROOT", "C:\local\boost_1_87_0", "User")
+```
+
+   That `Test-Path` must print `True`. If it prints `False`, the wrong
+   toolset or the source archive was downloaded rather than a binary
+   installer.
+
+   In the new prompt, confirm the whole toolchain before going on:
+
+```powershell
+git --version; cmake --version; $env:BOOST_ROOT
+```
+
+3. The three repositories as siblings, on the working branch:
+
+```powershell
+mkdir C:\wow; cd C:\wow
+git clone -b claude/documentation-review-s056qd https://github.com/Rychek4/mangos-classic.git
+git clone -b claude/documentation-review-s056qd https://github.com/Rychek4/playerbots.git
+git clone -b claude/documentation-review-s056qd https://github.com/Rychek4/Azeroth_Narrator.git
+```
+
+4. Configure, build, install (the first build is the long one):
+
+```powershell
+cd C:\wow\mangos-classic
+cmake -B build -S . -G "Visual Studio 17 2022" -A x64 `
+  -DBUILD_PLAYERBOTS=ON -DFETCHCONTENT_SOURCE_DIR_PLAYERBOTS=C:\wow\playerbots `
+  -DBUILD_EXTRACTORS=ON -DCMAKE_INSTALL_PREFIX=C:\wow\server
+cmake --build build --config Release --parallel
+cmake --install build --config Release
+C:\wow\server\mangosd.exe --version
+```
+
+   `C:\wow\server` then holds `mangosd.exe`, `realmd.exe`, the extractors,
+   the shipped DLLs, and the `.conf.dist` files (`mangosd`, `realmd`,
+   `aiplayerbot`, `anticheat`). `build\` holds a solution file Visual Studio
+   can open. A rebuild after editing the module is `cmake --build build
+   --config Release --parallel` again; CMake never touches the sibling
+   checkout.
+
+If CMake reports that Boost was not found, pass the same folder as
+`-DBOOST_ROOT=...` on the configure line as well and check that
+`lib64-msvc-14.3\cmake\Boost-<version>\BoostConfig.cmake` exists under it. If Git complains about path length, `git config --global
+core.longpaths true`. Debug builds are several times slower; use Release, or
+RelWithDebInfo when a stack trace is needed.
+
+Compiling is not running. `RUNNING.md` takes it from here: MySQL, the
+databases, the world database, the playerbots tables, extracting map data
+from a 1.12.1 client, the configuration files, turning the bridge on, and
+starting the narrator.

@@ -428,7 +428,7 @@ void AreaAura::Update(uint32 diff)
                     Group* pGroup = nullptr;
 
                     // Handle aura party for players
-                    if (owner->GetTypeId() == TYPEID_PLAYER)
+                    if (owner->IsPlayer())
                     {
                         pGroup = ((Player*)owner)->GetGroup();
 
@@ -519,7 +519,7 @@ void AreaAura::Update(uint32 diff)
                             // non caster self-casted auras (stacked from diff. casters)
                             if (aur->GetModifier()->m_auraname != SPELL_AURA_NONE && i->second->GetCasterGuid() != GetCasterGuid())
                             {
-                                apply = sSpellStacker.IsStackableSpell(actualSpellInfo, i->second->GetSpellProto(), target);
+                                apply = sSpellStacker.IsSpellStackableWithSpell(actualSpellInfo, i->second->GetSpellProto(), target);
                                 break;
                             }
                             if (aur->GetModifier()->m_auraname != SPELL_AURA_NONE || i->second->GetCasterGuid() == GetCasterGuid())
@@ -592,12 +592,14 @@ void AreaAura::Update(uint32 diff)
         // remove aura if out-of-range from caster (after teleport for example)
         // or caster is isolated or caster no longer has the aura
         // or caster is (no longer) friendly
+        // needs to mirror application rules
+        bool needHostilityCheck = m_areaAuraType != AREA_AURA_PARTY || caster && caster->IsPlayer();
         bool needFriendly = true;
         if (!caster ||
                 caster->hasUnitState(UNIT_STAT_ISOLATED)               ||
                 !caster->HasAura(originalRankSpellId, GetEffIndex())   ||
                 !caster->IsWithinDistInMap(target, m_radius)           ||
-                caster->CanAssistSpell(target, GetSpellProto()) != needFriendly
+                (needHostilityCheck && caster->CanAssistSpell(target, GetSpellProto()) != needFriendly)
            )
         {
             target->RemoveSingleAuraFromSpellAuraHolder(GetId(), GetEffIndex(), GetCasterGuid());
@@ -1829,7 +1831,7 @@ void Aura::HandleAuraModShapeshift(bool apply, bool Real)
                 if ((aurMechMask & MECHANIC_NOT_REMOVED_BY_SHAPESHIFT) ||
                         // some Daze spells have these parameters instead of MECHANIC_DAZE (skip snare spells)
                         (aurSpellInfo->SpellIconID == 15 && aurSpellInfo->Dispel == 0 &&
-                         (aurMechMask & (1 << (MECHANIC_SNARE - 1))) == 0))
+                         (aurMechMask & convertEnumToFlag(MECHANIC_SNARE)) == 0))
                 {
                     ++iter;
                     continue;
@@ -1859,7 +1861,10 @@ void Aura::HandleAuraModShapeshift(bool apply, bool Real)
         target->RemoveSpellsCausingAura(SPELL_AURA_MOD_SHAPESHIFT, GetHolder());
 
         if (displayId > 0)
+        {
+            GetModifier()->m_amount = displayId;
             target->SetDisplayId(displayId);
+        }
 
         if (PowerType != POWER_MANA)
         {
@@ -2113,7 +2118,7 @@ void Aura::HandleChannelDeathItem(bool apply, bool Real)
         if (msg != EQUIP_ERR_OK)
         {
             count -= noSpaceForCount;
-            ((Player*)caster)->SendEquipError(msg, nullptr, nullptr, itemType);
+            ((Player*)caster)->SendEquipError(msg, nullptr, nullptr, 0, itemType);
             if (count == 0)
                 return;
         }
@@ -2721,7 +2726,7 @@ void Aura::HandleDetectAmore(bool apply, bool /*real*/)
     if (!GetTarget()->IsPlayer())
         return;
 
-    GetTarget()->ApplyModByteFlag(PLAYER_FIELD_BYTES2, 1, 1 << (GetMiscValue() - 1), apply);
+    GetTarget()->ApplyModByteFlag(PLAYER_FIELD_BYTES2, 1, convertEnumToFlag(GetMiscValue()), apply);
 }
 
 void Aura::HandleAuraModRoot(bool apply, bool Real)
@@ -2940,7 +2945,7 @@ void Aura::HandleModMechanicImmunity(bool apply, bool /*Real*/)
 
     if (apply && GetSpellProto()->HasAttribute(SPELL_ATTR_EX_IMMUNITY_PURGES_EFFECT))
     {
-        uint32 mechanic = 1 << (misc - 1);
+        uint32 mechanic = convertEnumToFlag(misc);
 
         target->RemoveAurasAtMechanicImmunity(mechanic, GetId());
     }
@@ -3721,7 +3726,7 @@ void Aura::HandleAuraModIncreaseEnergy(bool apply, bool /*Real*/)
     Unit* target = GetTarget();
     Powers powerType = Powers(m_modifier.m_miscvalue);
 
-    UnitMods unitMod = UnitMods(UNIT_MOD_POWER_START + powerType);
+    UnitMods unitMod = UnitMods(static_cast<uint32>(UNIT_MOD_POWER_START) + static_cast<uint32>(powerType));
 
     target->HandleStatModifier(unitMod, TOTAL_VALUE, float(m_removeMode == AURA_REMOVE_BY_GAINED_STACK ? m_modifier.m_recentAmount : m_modifier.m_amount), apply);
 }
@@ -3731,7 +3736,7 @@ void Aura::HandleAuraModIncreaseEnergyPercent(bool apply, bool /*Real*/)
     Unit* target = GetTarget();
     Powers powerType = Powers(m_modifier.m_miscvalue);
 
-    UnitMods unitMod = UnitMods(UNIT_MOD_POWER_START + powerType);
+    UnitMods unitMod = UnitMods(static_cast<uint32>(UNIT_MOD_POWER_START) + static_cast<uint32>(powerType));
 
     target->HandleStatModifier(unitMod, TOTAL_PCT, float(m_modifier.m_amount), apply);
     target->ModifyPower(powerType, apply ? m_modifier.m_amount : -m_modifier.m_amount);
@@ -5798,11 +5803,11 @@ bool SpellAuraHolder::HasMechanic(uint32 mechanic) const
 
 bool SpellAuraHolder::HasMechanicMask(uint32 mechanicMask) const
 {
-    if (mechanicMask & (1 << (m_spellProto->Mechanic - 1)))
+    if (mechanicMask & convertEnumToFlag(m_spellProto->Mechanic))
         return true;
 
     for (int32 i = 0; i < MAX_EFFECT_INDEX; ++i)
-        if (m_auras[i] && m_spellProto->EffectMechanic[i] && ((1 << (m_spellProto->EffectMechanic[i] - 1)) & mechanicMask))
+        if (m_auras[i] && m_spellProto->EffectMechanic[i] && (convertEnumToFlag(m_spellProto->EffectMechanic[i]) & mechanicMask))
             return true;
     return false;
 }
@@ -6108,7 +6113,7 @@ int32 Aura::OnAuraValueCalculate(Unit* caster, int32 currentValue, Item* castIte
     return currentValue;
 }
 
-void Aura::OnDamageCalculate(Unit* victim, Unit* attacker, int32& advertisedBenefit, float& totalMod)
+void Aura::OnDamageCalculate(Unit* attacker, Unit* victim, int32& advertisedBenefit, float& totalMod)
 {
     if (AuraScript* script = GetAuraScript())
         return script->OnDamageCalculate(this, attacker, victim, advertisedBenefit, totalMod);
