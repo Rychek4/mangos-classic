@@ -164,6 +164,22 @@ narrator-ui --console-only
 
 ---
 
+## The story
+
+```powershell
+cd C:\wow\Azeroth_Narrator
+python -m narrator story brief --premise "Someone is paying the Defias to watch the roads."
+```
+Writes `story-brief.md` (needs the server up, for the roster). Paste it into a
+frontier model; save the JSON it answers with; then
+```powershell
+python -m narrator story load story-bible.json     # strict; names every problem
+python -m narrator story show                      # the bible, with played beats marked
+python -m narrator story brief --revise            # after some of it has played
+python -m narrator story reset                     # forget what was played
+```
+`STORY_BIBLE.md` is the file format.
+
 ## Diagnostics
 
 ```powershell
