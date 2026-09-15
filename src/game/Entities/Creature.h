@@ -177,6 +177,8 @@ struct CreatureInfo
     uint32  Civilian;
     char const* AIName;
     uint32  ScriptID;
+    float DamageMultiplierOLD;
+    float DamageVarianceOLD;
 
     // helpers
     static HighGuid GetHighGuid()
@@ -338,6 +340,7 @@ struct CreatureClassLvlStats
     uint32  BaseHealth;
     uint32  BaseMana;
     float   BaseDamage;
+    float   BaseDamageOLD;
     float   BaseMeleeAttackPower;
     float   BaseRangedAttackPower;
     uint32  BaseArmor;
@@ -590,7 +593,7 @@ class Creature : public Unit
     public:
 
         explicit Creature(CreatureSubtype subtype = CREATURE_SUBTYPE_GENERIC);
-        virtual ~Creature();
+        virtual ~Creature() override;
 
         void AddToWorld() override;
         void RemoveFromWorld() override;
@@ -774,9 +777,11 @@ class Creature : public Unit
         void CallForHelp(float radius);
         void CallAssistance();
         void CallAssistance(Unit* enemy);
+        std::pair<bool, GuidVector> MarkCallAssistanceOnPull(Unit* enemy);
+        void CallAssistanceOnPull(Unit* enemy, GuidVector const& receiverList);
         void SetNoCallAssistance(bool val) { m_AlreadyCallAssistance = val; }
         bool CanAssistTo(const Unit* u, const Unit* enemy, bool checkfaction = true) const;
-        bool CanInitiateAttack() const;
+        bool CanInitiateAttack() const override;
         bool CanCallForAssistance() const override { return m_canCallForAssistance; }
         void SetCanCallForAssistance(bool state) { m_canCallForAssistance = state; }
         bool IsInGroup(Unit const* other, bool party/* = false*/, bool ignoreCharms/* = false*/) const override;
@@ -1015,6 +1020,9 @@ class Creature : public Unit
         bool m_imposedCooldown;
 
         float m_healthMultiplier;
+        float m_damageMultiplier;
+        float m_baseAP;
+        float m_baseRAP;
 
     private:
         GridReference<Creature> m_gridRef;

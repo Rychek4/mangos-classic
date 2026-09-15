@@ -143,8 +143,6 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
         return;
     }
 
-    _player->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_ITEM_USE);
-
     // Note: If script stop casting it must send appropriate data to client to prevent stuck item in gray state.
     if (!sScriptDevAIMgr.OnItemUse(pUser, pItem, targets))
     {
@@ -294,9 +292,6 @@ void WorldSession::HandleGameObjectUseOpcode(WorldPacket& recv_data)
         return;
     }
 
-    if (obj->HasFlag(GAMEOBJECT_FLAGS, GO_FLAG_LOCKED)) // we should not allow use of a locked GO
-        return;
-
     if (obj->HasFlag(GAMEOBJECT_FLAGS, GO_FLAG_IN_USE))
         return;
 
@@ -307,18 +302,8 @@ void WorldSession::HandleGameObjectUseOpcode(WorldPacket& recv_data)
         return;
     }
 
-    // client checks this but needs recheck
-    if (obj->GetGOInfo()->CannotBeUsedUnderImmunity() && _player->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE))
+    if (!obj->CanUseNow(_player))
         return;
-
-    // code meant to be in CanUseNow
-    if (obj->GetGoType() == GAMEOBJECT_TYPE_CHAIR)
-    {
-        float x, y;
-        std::tie(x, y) = obj->GetClosestChairSlotPosition(_player);
-        if (_player->GetDistance(x, y, obj->GetPositionZ(), DIST_CALC_NONE) > 3.f * 3.f)
-            return;
-    }
 
     obj->Use(_player);
 }
@@ -396,6 +381,11 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
     if (HasMissingTargetFromClient(spellInfo))
         targets.setUnitTarget(mover->GetTarget());
 
+    if (IsAutoRepeatRangedSpell(spellInfo))
+        if (const Spell* repeatSpell = caster->GetCurrentSpell(CURRENT_AUTOREPEAT_SPELL))
+            if (spellId == repeatSpell->m_spellInfo->Id)
+                return;
+
     Spell* spell = new Spell(caster, spellInfo, TRIGGERED_NONE);
     spell->m_clientCast = true;
     spell->SpellStart(&targets);
@@ -431,7 +421,7 @@ void WorldSession::HandleCancelAuraOpcode(WorldPacket& recvPacket)
     if (spellInfo->HasAttribute(SPELL_ATTR_NO_AURA_CANCEL))
         return;
 
-    if (spellInfo->HasAttribute(SPELL_ATTR_EX_NO_AURA_ICON))
+    if (spellInfo->HasAttribute(SPELL_ATTR_EX_NO_AURA_ICON) && !IsSpellHaveAura(spellInfo, SPELL_AURA_TRACK_RESOURCES))
         return;
 
     if (IsPassiveSpell(spellInfo))

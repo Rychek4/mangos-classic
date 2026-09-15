@@ -167,7 +167,7 @@ Map::Map(uint32 id, time_t expiry, uint32 InstanceId)
     m_weatherSystem = new WeatherSystem(this);
 }
 
-void Map::Initialize(bool loadInstanceData /*= true*/)
+void Map::Initialize(std::mutex* mmapMutex, bool loadInstanceData /*= true*/)
 {
     m_CreatureGuids.Set(sObjectMgr.GetFirstTemporaryCreatureLowGuid());
     m_GameObjectGuids.Set(sObjectMgr.GetFirstTemporaryGameObjectLowGuid());
@@ -202,9 +202,13 @@ void Map::Initialize(bool loadInstanceData /*= true*/)
     auto mmap = MMAP::MMapFactory::createOrGetMMapManager();
     if (mmap->IsEnabled())
     {
+        if (mmapMutex)
+            mmapMutex->lock();
         MMAP::MMapFactory::createOrGetMMapManager()->loadMapInstance(sWorld.GetDataPath(), GetId(), GetInstanceId());
         if (sWorld.getConfig(CONFIG_BOOL_PRELOAD_MMAP_TILES))
             MMAP::MMapFactory::createOrGetMMapManager()->loadAllMapTiles(sWorld.GetDataPath(), GetId());
+        if (mmapMutex)
+            mmapMutex->unlock();
     }
 
     sObjectMgr.LoadActiveEntities(this);
@@ -697,7 +701,7 @@ void Map::Update(const uint32& t_diff)
 
     m_curTime = time(nullptr);
 
-#ifdef _MSC_VER
+#ifdef _WIN32
     localtime_s(&m_curTimeTm, &m_curTime);
 #else
     localtime_r(&m_curTime, &m_curTimeTm);
@@ -882,7 +886,7 @@ void Map::Update(const uint32& t_diff)
     // Log the active zones and characters
     if (IsContinent() && HasRealPlayers() && HasActiveZones() && m_activeZonesTimer == 0U)
     {
-        sLog.outBasic("Map %u: Active Zones - %u", GetId(), m_activeZones.size());
+        sLog.outBasic("Map %u: Active Zones - %lu", GetId(), m_activeZones.size());
         sLog.outBasic("Map %u: Active Zone Players - %u of %u", GetId(), activePlayers, m_mapRefManager.getSize());
     }
 #endif
@@ -2060,9 +2064,9 @@ BattleGroundMap::~BattleGroundMap()
 {
 }
 
-void BattleGroundMap::Initialize(bool)
+void BattleGroundMap::Initialize(std::mutex* mmapMutex, bool)
 {
-    Map::Initialize(false);
+    Map::Initialize(mmapMutex, false);
 }
 
 void BattleGroundMap::Update(const uint32& diff)

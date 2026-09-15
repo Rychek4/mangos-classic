@@ -23,7 +23,7 @@ DROP TABLE IF EXISTS `db_version`;
 CREATE TABLE `db_version` (
   `version` varchar(120) DEFAULT NULL,
   `creature_ai_version` varchar(120) DEFAULT NULL,
-  `required_z2830_01_mangos_icon_name` bit(1) DEFAULT NULL
+  `required_z2836_01_mangos_cls_rework` bit(1) DEFAULT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='Used DB version notes';
 
 --
@@ -772,6 +772,7 @@ CREATE TABLE `creature_zone` (
   `Guid` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'Global Unique Identifier',
   `ZoneId` mediumint unsigned NOT NULL DEFAULT '0' COMMENT 'Zone Identifier',
   `AreaId` mediumint unsigned NOT NULL DEFAULT '0' COMMENT 'Area Identifier',
+  `WmoGroupId` INT DEFAULT 0,
   PRIMARY KEY(`Guid`)
 );
 
@@ -1263,7 +1264,7 @@ CREATE TABLE `creature_template` (
   `HealthMultiplier` float NOT NULL DEFAULT '1',
   `PowerMultiplier` float NOT NULL DEFAULT '1',
   `DamageMultiplier` float NOT NULL DEFAULT '1',
-  `DamageVariance` float NOT NULL DEFAULT '1',
+  `DamageVariance` float NOT NULL DEFAULT '0.4',
   `ArmorMultiplier` float NOT NULL DEFAULT '1',
   `ExperienceMultiplier` float NOT NULL DEFAULT '1',
   `StrengthMultiplier` float NOT NULL DEFAULT '1',
@@ -1319,6 +1320,8 @@ CREATE TABLE `creature_template` (
   `StringId2` INT(11) UNSIGNED NOT NULL DEFAULT '0',
   `AIName` char(64) NOT NULL DEFAULT '',
   `ScriptName` char(64) NOT NULL DEFAULT '',
+  `DamageMultiplierOLD` float NOT NULL DEFAULT '1',
+  `DamageVarianceOLD` float NOT NULL DEFAULT '1',
   PRIMARY KEY (`entry`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='Creature System';
 
@@ -1329,7 +1332,7 @@ CREATE TABLE `creature_template` (
 LOCK TABLES `creature_template` WRITE;
 /*!40000 ALTER TABLE `creature_template` DISABLE KEYS */;
 INSERT INTO `creature_template` VALUES
-(1,'Waypoint (Only GM can see it)','Visual',63,63,10045,0,0,0,100,0,0,0,35,0,8,8,7,1,0,0,4096,0,130,5242886,0,0,0,0,0.91,1.14286,20,0,0,0,0,0,3,1,1,1,1,1,1,1,1,1,1,1,9999,9999,0,0,7,7,1.76,2.42,0,3,100,2000,2200,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,'','');
+(1,'Waypoint (Only GM can see it)','Visual',63,63,10045,0,0,0,100,0,0,0,35,0,8,8,7,1,0,0,4096,0,130,5242886,0,0,0,0,0.91,1.14286,20,0,0,0,0,0,3,1,1,1,1,1,1,1,1,1,1,1,9999,9999,0,0,7,7,1.76,2.42,0,3,100,2000,2200,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,'','',1,1);
 /*!40000 ALTER TABLE `creature_template` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1968,6 +1971,7 @@ CREATE TABLE `gameobject_zone` (
   `Guid` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'Global Unique Identifier',
   `ZoneId` mediumint unsigned NOT NULL DEFAULT '0' COMMENT 'Zone Identifier',
   `AreaId` mediumint unsigned NOT NULL DEFAULT '0' COMMENT 'Area Identifier',
+  `WmoGroupId` INT DEFAULT 0,
   PRIMARY KEY(`Guid`)
 );
 
@@ -3862,7 +3866,7 @@ INSERT INTO `mangos_string` VALUES
 (514,'%d - |cffffffff|Hcreature_entry:%d|h[%s]|h|r ',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
 (515,'%d%s - |cffffffff|Hcreature:%d|h[%s X:%f Y:%f Z:%f MapId:%d]|h|r ',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
 (516,'%d - |cffffffff|Hgameobject_entry:%d|h[%s]|h|r ',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
-(517,'%d%s, Entry %d - |cffffffff|Hgameobject:%d|h[%s X:%f Y:%f Z:%f MapId:%d]SpawnGroup:%u|h|r',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
+(517,'%d%s, Entry %d - |cffffffff|Hgameobject:%d:%d|h[%s X:%f Y:%f Z:%f MapId:%d]|h|r SpawnGroup:%u',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
 (518,'%d - |cffffffff|Hitemset:%d|h[%s %s]|h|r ',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
 (519,'|cffffffff|Htele:%s|h[%s]|h|r ',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
 (520,'%d - |cffffffff|Hspell:%d|h[%s]|h|r ',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
@@ -4596,6 +4600,16 @@ LOCK TABLES `pet_levelstats` WRITE;
 /*!40000 ALTER TABLE `pet_levelstats` DISABLE KEYS */;
 /*!40000 ALTER TABLE `pet_levelstats` ENABLE KEYS */;
 UNLOCK TABLES;
+
+DROP TABLE IF EXISTS `pet_autocast_spell_list`;
+CREATE TABLE `pet_autocast_spell_list` (
+`CreatureEntry` INT UNSIGNED NOT NULL,
+`SpellId` INT UNSIGNED NOT NULL,
+`CombatCondition` INT NOT NULL DEFAULT '-1',
+`TargetId` INT NOT NULL,
+`Comments` VARCHAR(255) NOT NULL,
+PRIMARY KEY(`CreatureEntry`, `SpellId`)
+);
 
 --
 -- Table structure for table `pet_name_generation`
@@ -10227,7 +10241,7 @@ CREATE TABLE `quest_template` (
   `RewRepValue3` mediumint(9) NOT NULL DEFAULT '0',
   `RewRepValue4` mediumint(9) NOT NULL DEFAULT '0',
   `RewRepValue5` mediumint(9) NOT NULL DEFAULT '0',
-  `ReputationSpilloverMask` tinyint unsigned NOT NULL DEFAULT '0',
+  `RewFactionFlags` tinyint unsigned NOT NULL DEFAULT '0',
   `RewOrReqMoney` int(11) NOT NULL DEFAULT '0',
   `RewMoneyMaxLevel` int(10) unsigned NOT NULL DEFAULT '0',
   `RewSpell` mediumint(8) unsigned NOT NULL DEFAULT '0',
@@ -14015,6 +14029,7 @@ CREATE TABLE `spell_threat` (
   `Threat` smallint(6) NOT NULL,
   `multiplier` float NOT NULL DEFAULT '1' COMMENT 'threat multiplier for damage/healing',
   `ap_bonus` float NOT NULL DEFAULT '0' COMMENT 'additional threat bonus from attack power',
+  `InverseEffectMask` INT UNSIGNED DEFAULT '0' COMMENT 'inverse mask for which effects to apply to',
   PRIMARY KEY (`entry`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
@@ -14025,78 +14040,78 @@ CREATE TABLE `spell_threat` (
 LOCK TABLES `spell_threat` WRITE;
 /*!40000 ALTER TABLE `spell_threat` DISABLE KEYS */;
 INSERT INTO `spell_threat` VALUES
-(   72, 180, 1, 0),
-(   78,  20, 1, 0),
-(   99,  15, 1, 0),
-(  284,  39, 1, 0),
-(  285,  59, 1, 0),
-(  770, 108, 1, 0),
-(  845,  10, 1, 0),
-( 1608,  78, 1, 0),
-( 1715,  61, 1, 0),
-( 1735,  25, 1, 0),
-( 2139, 300, 1, 0),
-( 2649, 415, 1, 0),
-( 3716, 395, 1, 0),
-( 6343,  17, 1, 0),
-( 6572, 155, 1, 0),
-( 6574, 195, 1, 0),
-( 6673,  60, 1, 0),
-( 6807,  59, 1, 0),
-( 6809,  89, 1, 0),
-( 7369,  40, 1, 0),
-( 7372, 101, 1, 0),
-( 7373, 141, 1, 0),
-( 7379, 235, 1, 0),
-( 7386, 100, 1, 0),
-( 7405, 140, 1, 0),
-( 8198,  40, 1, 0),
-( 8204,  64, 1, 0),
-( 8205,  96, 1, 0),
-( 8380, 180, 1, 0),
-( 8972, 118, 1, 0),
-( 9490,  29, 1, 0),
-( 9745, 148, 1, 0),
-( 9747,  36, 1, 0),
-( 9880, 178, 1, 0),
-( 9881, 207, 1, 0),
-( 9898,  42, 1, 0),
-(11564,  98, 1, 0),
-(11565, 118, 1, 0),
-(11566, 137, 1, 0),
-(11567, 145, 1, 0),
-(11580, 143, 1, 0),
-(11581, 180, 1, 0),
-(11596, 220, 1, 0),
-(11597, 261, 1, 0),
-(11600, 275, 1, 0),
-(11601, 315, 1, 0),
-(11608,  60, 1, 0),
-(11609,  70, 1, 0),
-(14274, 200, 1, 0),
-(15629, 300, 1, 0),
-(15630, 400, 1, 0),
-(15631, 500, 1, 0),
-(15632, 600, 1, 0),
-(16857, 108, 1, 0),
-(17735, 200, 1, 0),
-(17750, 300, 1, 0),
-(17751, 450, 1, 0),
-(17752, 600, 1, 0),
-(20243, 101, 1, 0),
-(20569, 100, 1, 0),
-(20736, 100, 1, 0),
-(20925,  20, 1, 0),
-(20927,  30, 1, 0),
-(20928,  40, 1, 0),
-(23922, 160, 1, 0),
-(23923, 190, 1, 0),
-(23924, 220, 1, 0),
-(23925, 250, 1, 0),
-(24394, 580, 1, 0),
-(24640,   5, 1, 0),
-(25286, 175, 1, 0),
-(25288, 355, 1, 0);
+(   72, 180, 1, 0, 0),
+(   78,  20, 1, 0, 0),
+(   99,  15, 1, 0, 0),
+(  284,  39, 1, 0, 0),
+(  285,  59, 1, 0, 0),
+(  770, 108, 1, 0, 0),
+(  845,  10, 1, 0, 0),
+( 1608,  78, 1, 0, 0),
+( 1715,  61, 1, 0, 0),
+( 1735,  25, 1, 0, 0),
+( 2139, 300, 1, 0, 0),
+( 2649, 415, 1, 0, 0),
+( 3716, 395, 1, 0, 0),
+( 6343,  17, 1, 0, 0),
+( 6572, 155, 1, 0, 0),
+( 6574, 195, 1, 0, 0),
+( 6673,  60, 1, 0, 0),
+( 6807,  59, 1, 0, 0),
+( 6809,  89, 1, 0, 0),
+( 7369,  40, 1, 0, 0),
+( 7372, 101, 1, 0, 0),
+( 7373, 141, 1, 0, 0),
+( 7379, 235, 1, 0, 0),
+( 7386, 100, 1, 0, 0),
+( 7405, 140, 1, 0, 0),
+( 8198,  40, 1, 0, 0),
+( 8204,  64, 1, 0, 0),
+( 8205,  96, 1, 0, 0),
+( 8380, 180, 1, 0, 0),
+( 8972, 118, 1, 0, 0),
+( 9490,  29, 1, 0, 0),
+( 9745, 148, 1, 0, 0),
+( 9747,  36, 1, 0, 0),
+( 9880, 178, 1, 0, 0),
+( 9881, 207, 1, 0, 0),
+( 9898,  42, 1, 0, 0),
+(11564,  98, 1, 0, 0),
+(11565, 118, 1, 0, 0),
+(11566, 137, 1, 0, 0),
+(11567, 145, 1, 0, 0),
+(11580, 143, 1, 0, 0),
+(11581, 180, 1, 0, 0),
+(11596, 220, 1, 0, 0),
+(11597, 261, 1, 0, 0),
+(11600, 275, 1, 0, 0),
+(11601, 315, 1, 0, 0),
+(11608,  60, 1, 0, 0),
+(11609,  70, 1, 0, 0),
+(14274, 200, 1, 0, 0),
+(15629, 300, 1, 0, 0),
+(15630, 400, 1, 0, 0),
+(15631, 500, 1, 0, 0),
+(15632, 600, 1, 0, 0),
+(16857, 108, 1, 0, 0),
+(17735, 200, 1, 0, 0),
+(17750, 300, 1, 0, 0),
+(17751, 450, 1, 0, 0),
+(17752, 600, 1, 0, 0),
+(20243, 101, 1, 0, 0),
+(20569, 100, 1, 0, 0),
+(20736, 100, 1, 0, 0),
+(20925,  20, 1, 0, 0),
+(20927,  30, 1, 0, 0),
+(20928,  40, 1, 0, 0),
+(23922, 160, 1, 0, 0),
+(23923, 190, 1, 0, 0),
+(23924, 220, 1, 0, 0),
+(23925, 250, 1, 0, 0),
+(24394, 580, 1, 0, 0),
+(24640,   5, 1, 0, 0),
+(25286, 175, 1, 0, 0),
+(25288, 355, 1, 0, 0);
 /*!40000 ALTER TABLE `spell_threat` ENABLE KEYS */;
 UNLOCK TABLES;
 

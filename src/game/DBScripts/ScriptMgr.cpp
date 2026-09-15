@@ -951,6 +951,19 @@ void ScriptMgr::LoadScripts(ScriptMapType scriptType)
                 }
                 break;
             }
+            case SCRIPT_COMMAND_SPAWN_SPAWN_GROUP: 
+            {
+                auto const& spgCont = sObjectMgr.GetSpawnGroupContainer()->spawnGroupMap;
+                if (spgCont.find(tmp.spawnGroupData.groupId) == spgCont.end())
+                {
+                    sLog.outErrorDb("Table `%s` uses invalid spawngroup id(%u) skipping",
+                        tablename,
+                        tmp.spawnGroupData.groupId);
+                    continue;
+                }
+
+                break;
+            }
             default:
             {
                 sLog.outErrorDb("Table `%s` unknown command %u, skipping", tablename, tmp.command);
@@ -1508,9 +1521,10 @@ std::pair<bool, bool> ScriptAction::GetScriptProcessTargets(WorldObject* origina
                     buddies.push_back(closest);
             }
             if (m_script->searchRadiusOrGuid > 0)
-                for (WorldObject* buddy : buddies)
-                    if (!buddy->IsWithinDist(origin, m_script->searchRadiusOrGuid))
-                        buddies.erase(std::remove(buddies.begin(), buddies.end(), buddy), buddies.end());
+                buddies.erase(std::remove_if(buddies.begin(), buddies.end(), [&](WorldObject* buddy)
+                {
+                    return !buddy->IsWithinDist(origin, m_script->searchRadiusOrGuid);
+                }), buddies.end());
 
             if (buddies.empty() && m_script->command != SCRIPT_COMMAND_TERMINATE_SCRIPT)
             {
@@ -1831,6 +1845,7 @@ bool ScriptAction::ExecuteDbscriptCommand(WorldObject* pSource, WorldObject* pTa
             if (LogIfNotUnit(pSource))
                 break;
 
+            Unit* unit = static_cast<Unit*>(pSource);
             Creature* creature = static_cast<Creature*>(pSource);
 
             if (m_script->textId[0])
@@ -1838,7 +1853,7 @@ bool ScriptAction::ExecuteDbscriptCommand(WorldObject* pSource, WorldObject* pTa
                 if (m_script->textId[0] == 1 || m_script->textId[0] == 2 && !creature->GetCreatureGroup())
                 {
                     Position const& respPos = creature->GetRespawnPosition();
-                    creature->GetMotionMaster()->MovePoint(0, respPos, ForcedMovement(m_script->moveTo.forcedMovement), 0.f, true, creature->GetObjectGuid(), m_script->moveTo.relayId);
+                    creature->GetMotionMaster()->MovePoint(0, respPos, ForcedMovement(m_script->moveTo.forcedMovement), m_script->speed, true, creature->GetObjectGuid(), m_script->moveTo.relayId);
                 }
                 else if (m_script->textId[0] == 2)
                 {
@@ -1849,28 +1864,34 @@ bool ScriptAction::ExecuteDbscriptCommand(WorldObject* pSource, WorldObject* pTa
 
             // Just turn around
             if ((m_script->x == 0.0f && m_script->y == 0.0f && m_script->z == 0.0f) ||
-                    // Check point-to-point distance, hence revert effect of bounding radius
-                    ((Unit*)pSource)->IsWithinDist3d(m_script->x, m_script->y, m_script->z, 0.01f - ((Unit*)pSource)->GetObjectBoundingRadius()))
+                // Check point-to-point distance, hence revert effect of bounding radius
+                unit->IsWithinDist3d(m_script->x, m_script->y, m_script->z, 0.01f - unit->GetObjectBoundingRadius()))
             {
-                ((Unit*)pSource)->SetFacingTo(m_script->o);
+                unit->SetFacingTo(m_script->o);
+                break;
+            }
+
+            // Change Z cord only
+            if (m_script->x == 0.0f && m_script->y == 0.0f && m_script->z != 0.0f)
+            {
+                unit->GetMotionMaster()->MovePoint(0, Position(pSource->GetPositionX(), pSource->GetPositionY(), pSource->GetPositionZ() + m_script->z, 0.f), ForcedMovement(m_script->moveTo.forcedMovement), m_script->speed, true, creature->GetObjectGuid(), m_script->moveTo.relayId);
                 break;
             }
 
             // For command additional teleport the unit
             if (m_script->data_flags & SCRIPT_FLAG_COMMAND_ADDITIONAL)
             {
-                ((Unit*)pSource)->NearTeleportTo(m_script->x, m_script->y, m_script->z, m_script->o != 0.0f ? m_script->o : ((Unit*)pSource)->GetOrientation());
+                unit->NearTeleportTo(m_script->x, m_script->y, m_script->z, m_script->o != 0.0f ? m_script->o : unit->GetOrientation());
                 break;
             }
 
             // Normal Movement
-            if (m_script->moveTo.travelSpeed)
-                ((Unit*)pSource)->GetMotionMaster()->MoveCharge(m_script->x, m_script->y, m_script->z, m_script->moveTo.travelSpeed * 0.01f, 0);
+            if ((m_script->moveTo.flags & 0x2) != 0) // make it main movegen
+                unit->GetMotionMaster()->Clear(false, true);
             else
-            {
-                ((Unit*)pSource)->GetMotionMaster()->Clear();
-                ((Unit*)pSource)->GetMotionMaster()->MovePoint(0, Position(m_script->x, m_script->y, m_script->z, m_script->o), ForcedMovement(m_script->moveTo.forcedMovement), 0.f, true, pTarget ? pTarget->GetObjectGuid() : ObjectGuid(), m_script->moveTo.relayId);
-            }
+                unit->GetMotionMaster()->Clear();
+
+            unit->GetMotionMaster()->MovePoint(0, Position(m_script->x, m_script->y, m_script->z, m_script->o), ForcedMovement(m_script->moveTo.forcedMovement), m_script->speed, true, pTarget ? pTarget->GetObjectGuid() : ObjectGuid(), m_script->moveTo.relayId);
             break;
         }
         case SCRIPT_COMMAND_FLAG_SET:                       // 4
@@ -2822,6 +2843,8 @@ bool ScriptAction::ExecuteDbscriptCommand(WorldObject* pSource, WorldObject* pTa
                 z = std::max(z, pTarget->GetPositionZ());
                 source->UpdateAllowedPositionZ(x, y, z);
             }
+            if ((m_script->textId[2] & 0x1) != 0) // make it main movegen
+                source->GetMotionMaster()->Clear(false, true);
             source->GetMotionMaster()->MovePoint(1, Position(x, y, z, 0.f), ForcedMovement(m_script->textId[0]), 0.f, true, pTarget ? pTarget->GetObjectGuid() : ObjectGuid(), m_script->textId[1]);
             break;
         }
@@ -3277,6 +3300,18 @@ bool ScriptAction::ExecuteDbscriptCommand(WorldObject* pSource, WorldObject* pTa
         case SCRIPT_COMMAND_SET_STRING_ID:
         {
             pSource->SetStringId(m_script->stringId.stringId, m_script->stringId.apply);
+            break;
+        }
+        case SCRIPT_COMMAND_SPAWN_SPAWN_GROUP: 
+        {
+            uint32 time_to_despawn = m_script->spawnGroupData.despawnDelay;
+            SpawnGroup* group = pSource->GetMap()->GetSpawnManager().GetSpawnGroup(m_script->spawnGroupData.groupId);
+            if (group)
+            {
+                group->Spawn(true, false);
+                if (time_to_despawn != 0)
+                    group->Despawn(time_to_despawn, true);
+            }
             break;
         }
         default:

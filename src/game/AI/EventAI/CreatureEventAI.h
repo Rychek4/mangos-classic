@@ -55,7 +55,7 @@ enum EventAI_Type
     EVENT_T_TARGET_CASTING          = 13,                   // RepeatMin, RepeatMax
     EVENT_T_FRIENDLY_HP             = 14,                   // HPDeficit, Radius, RepeatMin, RepeatMax, IsPercent
     EVENT_T_FRIENDLY_IS_CC          = 15,                   // DispelType, Radius, RepeatMin, RepeatMax
-    EVENT_T_FRIENDLY_MISSING_BUFF   = 16,                   // SpellId, Radius, RepeatMin, RepeatMax, InCombat
+    EVENT_T_FRIENDLY_MISSING_BUFF   = 16,                   // SpellId, Radius, RepeatMin, RepeatMax, Flags
     EVENT_T_SUMMONED_UNIT           = 17,                   // CreatureId, RepeatMin, RepeatMax
     EVENT_T_TARGET_MANA             = 18,                   // ManaMax%, ManaMin%, RepeatMin, RepeatMax
     EVENT_T_QUEST_ACCEPT            = 19,                   // QuestID
@@ -153,6 +153,7 @@ enum EventAI_ActionType
     ACTION_T_SET_DESPAWN_AGGREGATION    = 62,               // mask, entry, entry2
     ACTION_T_SET_IMMUNITY_SET           = 63,               // SetId - creature_immunities
     ACTION_T_SET_FOLLOW_MOVEMENT        = 64,               // state - 0 off, 1 on
+    ACTION_T_RETREAT                    = 65,
 
     ACTION_T_END,
 };
@@ -595,6 +596,7 @@ struct CreatureEventAI_Action
         {
             uint32 state;
         } followMovement;
+        // ACTION_T_RETREAT - no params at this time
         // RAW
         struct
         {
@@ -717,7 +719,7 @@ struct CreatureEventAI_Event
             uint32 radius;
             uint32 repeatMin;
             uint32 repeatMax;
-            uint32 inCombat;
+            uint32 flags;
         } friendly_buff;
         // EVENT_T_SUMMONED_UNIT                            = 17
         // EVENT_T_SUMMONED_JUST_DIED                       = 25
@@ -860,7 +862,7 @@ class CreatureEventAI : public CreatureAI
 {
     public:
         explicit CreatureEventAI(Creature* creature);
-        ~CreatureEventAI()
+        ~CreatureEventAI() override
         {
             m_CreatureEventAIList.clear();
         }

@@ -1513,8 +1513,16 @@ SpellAuraProcResult Unit::HandleProcTriggerSpellAuraProc(ProcExecutionData& data
             // Need add combopoint AFTER finishing move (or they get dropped in finish phase)
             if (Spell* spell = GetCurrentSpell(CURRENT_GENERIC_SPELL))
             {
-                spell->AddTriggeredSpell(trigger_spell_id);
-                return SPELL_AURA_PROC_OK;
+                // Only trigger if you are not the target (Slice and Dice casts twice,
+                // ignore on you, keep on target)
+                if (pVictim->GetObjectGuid() != GetObjectGuid()) 
+                {
+                    spell->AddTriggeredSpell(trigger_spell_id);
+                    return SPELL_AURA_PROC_OK;
+                }
+                // player is target, ignore
+                else         
+                    return SPELL_AURA_PROC_FAILED;
             }
             return SPELL_AURA_PROC_FAILED;
         }
@@ -1610,15 +1618,6 @@ SpellAuraProcResult Unit::HandleOverrideClassScriptAuraProc(ProcExecutionData& d
             // Check that only priest class can proc it is done in Spell::CheckTargetScript() for aura 23401
             if (IsSpellHaveEffect(spellInfo, SPELL_EFFECT_HEAL))
                 triggered_spell_id = 23402;
-            break;
-        }
-        case 4086:                                          // Improved Mend Pet (Rank 1)
-        case 4087:                                          // Improved Mend Pet (Rank 2)
-        {
-            if (!roll_chance_i(triggerAmount))
-                return SPELL_AURA_PROC_FAILED;
-
-            triggered_spell_id = 24406;
             break;
         }
         case 4309:

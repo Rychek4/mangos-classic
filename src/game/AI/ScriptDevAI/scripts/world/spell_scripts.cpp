@@ -82,7 +82,8 @@ struct MelodiousRapture : public SpellScript
     }
 };
 
-struct GreaterInvisibilityMob : public AuraScript
+// 16380, 32811, 32943 - Invisibility
+struct DetectThroughInvisibilityMob : public AuraScript
 {
     void OnApply(Aura* aura, bool apply) const override
     {
@@ -223,10 +224,16 @@ enum
     SPELL_RIVERPAW_DEATH   = 8655,
     SPELL_STROMGARDE_DEATH = 8894,
     SPELL_CRUSHRIDGE_DEATH = 9144,
+    SPELL_FROSTSABER_CUB_DEATH = 15782,
 
     SAY_RAGE_FALLEN        = 1151,
 };
 
+// 8603 - Thistlefur Death
+// 8655 - Riverpaw Death
+// 8894 - Stromgarde Death
+// 9144 - Crushridge Death
+// 15782 - Frostsaber Cub Death
 struct TribalDeath : public SpellScript
 {
     bool OnCheckTarget(const Spell* spell, Unit* target, SpellEffectIndex /*eff*/) const override
@@ -238,6 +245,7 @@ struct TribalDeath : public SpellScript
             case SPELL_RIVERPAW_DEATH: entry = 0; break; // Unk
             case SPELL_STROMGARDE_DEATH: entry = 2585; break; // Stromgarde Vindicator
             case SPELL_CRUSHRIDGE_DEATH: entry = 2287; break; // Crushridge Warmonger
+            case SPELL_FROSTSABER_CUB_DEATH: entry = 7434; break; // Frostsaber Pride Watcher
         }
         if (target->GetEntry() != entry)
             return false;
@@ -253,6 +261,7 @@ struct TribalDeath : public SpellScript
             case SPELL_RIVERPAW_DEATH: spellId = 0; break; // Unk
             case SPELL_STROMGARDE_DEATH: spellId = 8602; break;
             case SPELL_CRUSHRIDGE_DEATH: spellId = 8269; break;
+            case SPELL_FROSTSABER_CUB_DEATH: spellId = 15716; break;
         }
         Unit* target = spell->GetUnitTarget();
         Unit* caster = spell->GetCaster();
@@ -261,7 +270,7 @@ struct TribalDeath : public SpellScript
             if (Unit* killer = target->GetMap()->GetUnit(static_cast<Creature*>(target)->GetKillerGuid()))
                 target->AI()->AttackStart(killer);
 
-        if (spell->m_spellInfo->Id == SPELL_CRUSHRIDGE_DEATH)
+        if (spell->m_spellInfo->Id == SPELL_CRUSHRIDGE_DEATH || spell->m_spellInfo->Id == SPELL_FROSTSABER_CUB_DEATH)
             DoBroadcastText(SAY_RAGE_FALLEN, target, caster);
     }
 };
@@ -429,10 +438,19 @@ struct InvisibleForAlive : public AuraScript
     }
 };
 
+// 17162 - Summon Water Elemental
+struct SummonWaterElemental : public SpellScript
+{
+    void OnSummon(Spell* spell, Creature* summon) const override
+    {
+        summon->SelectLevel(spell->GetCaster()->GetLevel());
+    }
+};
+
 void AddSC_spell_scripts()
 {
     RegisterSpellScript<MelodiousRapture>("spell_melodious_rapture");
-    RegisterSpellScript<GreaterInvisibilityMob>("spell_greater_invisibility_mob");
+    RegisterSpellScript<DetectThroughInvisibilityMob>("spell_detect_through_invisibility_mob");
     RegisterSpellScript<WondervoltTrap>("spell_wondervolt_trap");
     RegisterSpellScript<ArcaneCloaking>("spell_arcane_cloaking");
     RegisterSpellScript<FoodAnimation>("spell_food_animation");
@@ -453,4 +471,5 @@ void AddSC_spell_scripts()
     RegisterSpellScript<RandomAggro>("spell_random_aggro");
     RegisterSpellScript<RandomAggro1000000>("spell_random_aggro_1000000");
     RegisterSpellScript<InvisibleForAlive>("spell_shroud_of_death");
+    RegisterSpellScript<SummonWaterElemental>("spell_summon_water_elemental");
 }

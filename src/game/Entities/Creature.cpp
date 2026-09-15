@@ -146,7 +146,7 @@ Creature::Creature(CreatureSubtype subtype) : Unit(),
     m_isInvisible(false), m_ignoreMMAP(false), m_forceAttackingCapability(false),
     m_settings(this),
     m_countSpawns(false),
-    m_creatureGroup(nullptr), m_imposedCooldown(false), m_healthMultiplier(1.f),
+    m_creatureGroup(nullptr), m_imposedCooldown(false), m_healthMultiplier(1.f), m_damageMultiplier(1.f), m_baseAP(0), m_baseRAP(0),
     m_creatureInfo(nullptr), m_mountInfo(nullptr),
     m_combatOnlyStealth(false)
 {
@@ -1307,6 +1307,7 @@ void Creature::SelectLevel(uint32 forcedLevel /*= USE_DEFAULT_DATABASE_LEVEL*/)
 
     float damageMod = _GetDamageMod(rank);
     float damageMulti = cinfo->DamageMultiplier * damageMod;
+    float damageMultiOLD = cinfo->DamageMultiplierOLD * damageMod;
     bool usedDamageMulti = false;
 
     if (CreatureClassLvlStats const* cCLS = sObjectMgr.GetCreatureClassLvlStats(level, cinfo->UnitClass))
@@ -1333,12 +1334,21 @@ void Creature::SelectLevel(uint32 forcedLevel /*= USE_DEFAULT_DATABASE_LEVEL*/)
         if (cinfo->DamageMultiplier >= 0 && cinfo->ArmorMultiplier >= 0)
         {
             usedDamageMulti = true;
-            mainMinDmg = ((cCLS->BaseDamage * cinfo->DamageVariance) + (cCLS->BaseMeleeAttackPower / 14.0f)) * (cinfo->MeleeBaseAttackTime / 1000.0f) * damageMulti;
-            mainMaxDmg = ((cCLS->BaseDamage * cinfo->DamageVariance * 1.5f) + (cCLS->BaseMeleeAttackPower / 14.0f)) * (cinfo->MeleeBaseAttackTime / 1000.0f) * damageMulti;
+            mainMinDmg = ((cCLS->BaseDamage - cCLS->BaseDamage * (cinfo->DamageVariance / 2)));
+            auto modifiedMainMinDmg = (mainMinDmg + (cCLS->BaseMeleeAttackPower / 14.0f)) * damageMulti;
+            mainMaxDmg = (cCLS->BaseDamage + cCLS->BaseDamage * (cinfo->DamageVariance / 2));
+            auto modifiedMainMaxDmg = ( + (cCLS->BaseMeleeAttackPower / 14.0f)) * damageMulti;
             offMinDmg = mainMinDmg; // Unitmod handles 50%
             offMaxDmg = mainMaxDmg;
-            minRangedDmg = ((cCLS->BaseDamage * cinfo->DamageVariance) + (cCLS->BaseRangedAttackPower / 14.0f)) * (cinfo->RangedBaseAttackTime / 1000.0f) * damageMulti;
-            maxRangedDmg = ((cCLS->BaseDamage * cinfo->DamageVariance * 1.5f) + (cCLS->BaseRangedAttackPower / 14.0f)) * (cinfo->RangedBaseAttackTime / 1000.0f) * damageMulti;
+            minRangedDmg = (cCLS->BaseDamage - cCLS->BaseDamage * (cinfo->DamageVariance / 2));
+            auto modifiedMinRangedDmg = ( + (cCLS->BaseRangedAttackPower / 14.0f)) * damageMulti;
+            maxRangedDmg = (cCLS->BaseDamage + cCLS->BaseDamage * (cinfo->DamageVariance / 2));
+            auto modifiedMaxRangedDmg = ( + (cCLS->BaseRangedAttackPower / 14.0f)) * damageMulti;
+
+            auto oldMainMinDmg = ((cCLS->BaseDamageOLD * cinfo->DamageVarianceOLD) + (cCLS->BaseMeleeAttackPower / 14.0f)) * (cinfo->MeleeBaseAttackTime / 1000.0f) * damageMultiOLD;
+            auto oldMainMaxDmg = ((cCLS->BaseDamageOLD * cinfo->DamageVarianceOLD * 1.5f) + (cCLS->BaseMeleeAttackPower / 14.0f)) * (cinfo->MeleeBaseAttackTime / 1000.0f) * damageMultiOLD;
+
+            // printf("CLS DIFF OLD %f NEW %f\n", (oldMainMinDmg + oldMainMaxDmg) / 2, (mainMinDmg + mainMaxDmg) / 2);
 
             // attack power (not sure about the next line)
             meleeAttackPwr = cCLS->BaseMeleeAttackPower;
@@ -1457,8 +1467,8 @@ void Creature::SelectLevel(uint32 forcedLevel /*= USE_DEFAULT_DATABASE_LEVEL*/)
     SetBaseWeaponDamage(RANGED_ATTACK, MAXDAMAGE, maxRangedDmg);
 
     // attack power
-    SetModifierValue(UNIT_MOD_ATTACK_POWER, BASE_VALUE, meleeAttackPwr * damageMod);
-    SetModifierValue(UNIT_MOD_ATTACK_POWER_RANGED, BASE_VALUE, rangedAttackPwr * damageMod);
+    m_baseAP = meleeAttackPwr;
+    m_baseRAP = rangedAttackPwr;
 
     // primary attributes
     SetCreateStat(STAT_STRENGTH, strength);
@@ -1469,6 +1479,7 @@ void Creature::SelectLevel(uint32 forcedLevel /*= USE_DEFAULT_DATABASE_LEVEL*/)
 
     // multipliers
     m_healthMultiplier = healthMultiplier;
+    m_damageMultiplier = damageMulti;
     SetModifierValue(UnitMods(UNIT_MOD_MANA + (int)GetPowerType()), TOTAL_PCT, powerMultiplier);
 
     UpdateAllStats();
@@ -1976,7 +1987,7 @@ bool Creature::IsImmuneToSpell(SpellEntry const* spellInfo, bool castOnSelf, uin
 
     if (!castOnSelf)
     {
-        if (GetCreatureInfo()->MechanicImmuneMask & (1 << (spellInfo->Mechanic - 1)))
+        if (GetCreatureInfo()->MechanicImmuneMask & convertEnumToFlag(spellInfo->Mechanic))
             return true;
 
         if (GetCreatureInfo()->SchoolImmuneMask & (1 << spellInfo->School))
@@ -1996,7 +2007,7 @@ bool Creature::IsImmuneToDamage(SpellSchoolMask meleeSchoolMask)
 
 bool Creature::IsImmuneToSpellEffect(SpellEntry const* spellInfo, SpellEffectIndex index, bool castOnSelf) const
 {
-    if (!castOnSelf && GetCreatureInfo()->MechanicImmuneMask & (1 << (spellInfo->EffectMechanic[index] - 1)))
+    if (!castOnSelf && GetCreatureInfo()->MechanicImmuneMask & convertEnumToFlag(spellInfo->EffectMechanic[index]))
         return true;
 
     return Unit::IsImmuneToSpellEffect(spellInfo, index, castOnSelf);
@@ -2161,6 +2172,45 @@ void Creature::CallAssistance(Unit* enemy)
         if (GetCreatureInfo()->CallForHelp > 0)
             radius = GetCreatureInfo()->CallForHelp;
         AI()->SendAIEventAround(AI_EVENT_CALL_ASSISTANCE, enemy, sWorld.getConfig(CONFIG_UINT32_CREATURE_FAMILY_ASSISTANCE_DELAY), radius);
+    }
+}
+
+std::pair<bool, GuidVector> Creature::MarkCallAssistanceOnPull(Unit* enemy)
+{
+    bool stored = m_AlreadyCallAssistance;
+    SetNoCallAssistance(true);
+
+    if (!CanCallForAssistance())
+        return {false, GuidVector()};
+
+    float radius = sWorld.getConfig(CONFIG_FLOAT_CREATURE_FAMILY_ASSISTANCE_RADIUS);
+    if (GetCreatureInfo()->CallForHelp > 0)
+        radius = GetCreatureInfo()->CallForHelp;
+
+    CreatureList receiverList;
+    MaNGOS::AnyAssistCreatureInRangeCheck u_check(this, enemy, radius);
+    MaNGOS::CreatureListSearcher<MaNGOS::AnyAssistCreatureInRangeCheck> searcher(receiverList, u_check);
+    Cell::VisitAllObjects(this, searcher, radius);
+    GuidVector guids;
+    for (Creature* creature : receiverList)
+        guids.push_back(creature->GetObjectGuid());
+    return {stored, guids};
+}
+
+void Creature::CallAssistanceOnPull(Unit* enemy, GuidVector const& receiverList)
+{
+    if (enemy && !HasCharmer())
+    {
+        MANGOS_ASSERT(AI());
+
+        for (ObjectGuid receiverGuid : receiverList)
+        {
+            if (Creature* receiver = GetMap()->GetAnyTypeCreature(receiverGuid))
+            {
+                receiver->AI()->ReceiveAIEvent(AI_EVENT_CALL_ASSISTANCE, this, enemy, 0);
+                receiver->AI()->HandleAssistanceCall(this, enemy); // Special case for type 0 (call-assistance)
+            }
+        }
     }
 }
 
@@ -2802,7 +2852,7 @@ void Creature::SetLootStatus(CreatureLootStatus status, bool forced)
             RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE);
             break;
         case CREATURE_LOOT_STATUS_SKIN_AVAILABLE:
-            SetFlag(UNIT_FIELD_FLAGS, UNIT_DYNFLAG_LOOTABLE);
+            SetFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE);
             RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_SKINNABLE);
             break;
         case CREATURE_LOOT_STATUS_PICKPOCKETED:

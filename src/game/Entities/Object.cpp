@@ -151,18 +151,6 @@ void Object::SendForcedObjectUpdate()
     }
 }
 
-void Object::BuildMovementUpdateBlock(UpdateData* data, uint8 flags) const
-{
-    ByteBuffer buf(500);
-
-    buf << uint8(UPDATETYPE_MOVEMENT);
-    buf << GetObjectGuid();
-
-    BuildMovementUpdate(&buf, flags);
-
-    data->AddUpdateBlock(buf);
-}
-
 void Object::BuildCreateUpdateBlockForPlayer(UpdateData* data, Player* target) const
 {
     if (!target)
@@ -1674,7 +1662,7 @@ void WorldObject::MovePositionToFirstCollision(Position& pos, float dist, float 
         }
         UpdateAllowedPositionZ(dest.x, dest.y, dest.z);
         path.calculate(src, dest, false, true);
-        if ((path.getPathType() & PATHFIND_NOPATH) == 0)
+        if ((path.getPathType() & PATHFIND_NOPATH) == 0 && !path.getPath().empty())
         {
             G3D::Vector3 result = path.getPath().back();
             destX = result.x;
@@ -1768,7 +1756,14 @@ void WorldObject::MonsterSay(char const* text, uint32 language, Unit const* targ
     WorldPacket data;
     ChatHandler::BuildChatPacket(data, CHAT_MSG_MONSTER_SAY, text, Language(language), CHAT_TAG_NONE, GetObjectGuid(), GetName(),
                                  target ? target->GetObjectGuid() : ObjectGuid(), target ? target->GetName() : "");
-    SendMessageToSetInRange(data, sWorld.getConfig(CONFIG_FLOAT_LISTEN_RANGE_SAY), true);
+    float sayRange = sWorld.getConfig(CONFIG_FLOAT_LISTEN_RANGE_SAY);
+    float visibilityDistance = GetVisibilityData().GetVisibilityDistance();
+    if (visibilityDistance >= 400.f) // gigantic aoi and above quadruple say range
+        sayRange *= 4;
+    else if (visibilityDistance >= 200.f) // large aoi and above double say range
+        sayRange *= 2;
+
+    SendMessageToSetInRange(data, sayRange, true);
 }
 
 void WorldObject::MonsterYell(const char* text, uint32 /*language*/, Unit const* target) const
@@ -1841,8 +1836,16 @@ void WorldObject::MonsterText(std::vector<std::string> content, uint32 type, Lan
     switch (type)
     {
         case CHAT_TYPE_SAY:
-            _DoLocalizedTextAround(this, content, CHAT_MSG_MONSTER_SAY, lang, target, sWorld.getConfig(CONFIG_FLOAT_LISTEN_RANGE_SAY));
+        {
+            float sayRange = sWorld.getConfig(CONFIG_FLOAT_LISTEN_RANGE_SAY);
+            float visibilityDistance = GetVisibilityData().GetVisibilityDistance();
+            if (visibilityDistance >= 400.f) // gigantic aoi and above quadruple say range
+                sayRange *= 4;
+            else if (visibilityDistance >= 200.f) // large aoi and above double say range
+                sayRange *= 2;
+            _DoLocalizedTextAround(this, content, CHAT_MSG_MONSTER_SAY, lang, target, sayRange);
             break;
+        }
         case CHAT_TYPE_YELL:
             _DoLocalizedTextAround(this, content, CHAT_MSG_MONSTER_YELL, lang, target, sWorld.getConfig(CONFIG_FLOAT_LISTEN_RANGE_YELL));
             break;
@@ -2706,6 +2709,9 @@ bool WorldObject::IsSpellReady(SpellEntry const& spellEntry, ItemPrototype const
     else
         now = World::GetCurrentClockTime();
 
+    if (!m_cooldownMap.IsGlobalCooldownExpired(now))
+        return false;
+
     // overwrite category by provided category in item prototype during item cast if need
     if (itemProto)
     {
@@ -3091,4 +3097,42 @@ bool WorldObject::CheckAndIncreaseCastCounter()
 
     ++m_castCounter;
     return true;
+}
+
+bool CooldownContainer::AddCooldown(TimePoint clockNow, uint32 spellId, uint32 duration, uint32 spellCategory, uint32 categoryDuration, uint32 itemId, bool onHold)
+{
+    RemoveBySpellId(spellId);
+    auto resultItr = m_spellIdMap.emplace(spellId, std::make_unique<CooldownData>(clockNow, spellId, duration, spellCategory, categoryDuration, itemId, onHold));
+    // do not overwrite one permanent category cooldown with another permanent category cooldown
+    if (resultItr.second && spellCategory && categoryDuration)
+    {
+        SpellCategoryEntry const* spellCategoryEntry = sSpellCategory.LookupEntry(spellCategory);
+        if (spellCategoryEntry->flags & uint32(SpellCategoryFlags::CooldownIsGlobal))
+        {
+            m_globalCooldown = std::chrono::milliseconds(categoryDuration) + clockNow;
+            return resultItr.second;
+        }
+
+        auto catItr = FindByCategory(spellCategory);
+        if (!onHold || catItr == m_spellIdMap.end() || !catItr->second->IsPermanent())
+        {
+            // we must keep original category cd owner for sake of client sync
+            if (catItr != m_spellIdMap.end())
+            {
+                catItr->second->SetCatCDExpireTime(std::chrono::milliseconds(categoryDuration) + clockNow);
+                catItr->second->m_typePermanent = false;
+                resultItr.first->second->m_category = 0;
+            }
+            else
+                m_categoryMap.emplace(spellCategory, resultItr.first);
+        }
+        else
+            resultItr.first->second->m_category = 0;
+    }
+
+    return resultItr.second;
+}
+bool CooldownContainer::IsGlobalCooldownExpired(TimePoint& now) const
+{
+    return m_globalCooldown <= now;
 }

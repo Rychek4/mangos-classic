@@ -561,10 +561,13 @@ void Unit::TriggerAggroLinkingEvent(Unit* enemy)
     if (!IsCreature() || !enemy)
         return;
 
-    m_events.AddEvent(new UnitLambdaEvent(*this, [enemyGuid = enemy->GetObjectGuid(), creatureGroup = static_cast<Creature*>(this)->GetCreatureGroup()](Unit& unit)
+    bool callAssistance; GuidVector receiverList;
+    std::tie(callAssistance, receiverList) = static_cast<Creature*>(this)->MarkCallAssistanceOnPull(enemy);
+
+    m_events.AddEvent(new UnitLambdaEvent(*this, [enemyGuid = enemy->GetObjectGuid(), creatureGroup = static_cast<Creature*>(this)->GetCreatureGroup(), callAssistance, receiverList](Unit& unit)
     {
         Unit* enemy = unit.GetMap()->GetUnit(enemyGuid);
-        if (!enemy)
+        if (!enemy || !unit.IsInCombat())
             return;
 
         if (unit.IsLinkingEventTrigger())
@@ -572,6 +575,9 @@ void Unit::TriggerAggroLinkingEvent(Unit* enemy)
 
         if (creatureGroup) // if npc dies before event execution, group will be removed from him, however groups are persistent and safe to access like this
             creatureGroup->TriggerLinkingEvent(CREATURE_GROUP_EVENT_AGGRO, enemy);
+
+        if (callAssistance)
+            static_cast<Creature&>(unit).CallAssistanceOnPull(enemy, receiverList);
     }), m_events.CalculateTime(sWorld.getConfig(CONFIG_UINT32_CREATURE_CHECK_FOR_HELP_AGGRO_DELAY)));
 }
 
@@ -1488,8 +1494,16 @@ SpellCastResult Unit::CastSpell(Unit* Victim, SpellEntry const* spellInfo, uint3
     SpellCastTargets targets;
     targets.setUnitTarget(Victim);
 
-    if (spellInfo->Targets & TARGET_FLAG_DEST_LOCATION)
-        targets.setDestination(Victim->GetPositionX(), Victim->GetPositionY(), Victim->GetPositionZ());
+    if ((spellInfo->Targets & TARGET_FLAG_DEST_LOCATION))
+    {
+        // This shouldn't happen, but we should return gracefully if it does...
+        if (!Victim)
+        {
+            sLog.outError("CastSpell: victim was nullptr but tried to get position: caster %s, spellId %i", GetGuidStr().c_str(), spellInfo->Id);
+            return SPELL_FAILED_BAD_TARGETS;
+        }    
+        targets.setDestination(Victim->GetPositionX(), Victim->GetPositionY(), Victim->GetPositionZ()); 
+    }
     if (spellInfo->Targets & TARGET_FLAG_SOURCE_LOCATION)
         if (WorldObject* caster = spell->GetCastingObject())
             targets.setSource(caster->GetPositionX(), caster->GetPositionY(), caster->GetPositionZ());
@@ -6418,9 +6432,9 @@ void Unit::ModifyAuraState(AuraState flag, bool apply)
 {
     if (apply)
     {
-        if (!HasFlag(UNIT_FIELD_AURASTATE, 1 << (flag - 1)))
+        if (!HasFlag(UNIT_FIELD_AURASTATE, convertEnumToFlag(flag)))
         {
-            SetFlag(UNIT_FIELD_AURASTATE, 1 << (flag - 1));
+            SetFlag(UNIT_FIELD_AURASTATE, convertEnumToFlag(flag));
             if (GetTypeId() == TYPEID_PLAYER)
             {
                 const PlayerSpellMap& sp_list = ((Player*)this)->GetSpellMap();
@@ -6437,9 +6451,9 @@ void Unit::ModifyAuraState(AuraState flag, bool apply)
     }
     else
     {
-        if (HasFlag(UNIT_FIELD_AURASTATE, 1 << (flag - 1)))
+        if (HasFlag(UNIT_FIELD_AURASTATE, convertEnumToFlag(flag)))
         {
-            RemoveFlag(UNIT_FIELD_AURASTATE, 1 << (flag - 1));
+            RemoveFlag(UNIT_FIELD_AURASTATE, convertEnumToFlag(flag));
 
             Unit::SpellAuraHolderMap& tAuras = GetSpellAuraHolderMap();
             for (Unit::SpellAuraHolderMap::iterator itr = tAuras.begin(); itr != tAuras.end();)
@@ -7361,7 +7375,7 @@ bool Unit::IsImmuneToSpell(SpellEntry const* spellInfo, bool /*castOnSelf*/, uin
 
         AuraList const& immuneAuraApply = GetAurasByType(SPELL_AURA_MECHANIC_IMMUNITY_MASK);
         for (auto iter : immuneAuraApply)
-            if (iter->GetModifier()->m_miscvalue & (1 << (mechanic - 1)))
+            if (iter->GetModifier()->m_miscvalue & (convertEnumToFlag(mechanic)))
                 return true;
     }
 
@@ -7389,7 +7403,7 @@ bool Unit::IsImmuneToSpellEffect(SpellEntry const* spellInfo, SpellEffectIndex i
 
         AuraList const& immuneAuraApply = GetAurasByType(SPELL_AURA_MECHANIC_IMMUNITY_MASK);
         for (auto iter : immuneAuraApply)
-            if (iter->GetModifier()->m_miscvalue & (1 << (mechanic - 1)))
+            if (iter->GetModifier()->m_miscvalue & convertEnumToFlag(mechanic))
                 return true;
     }
 
@@ -7989,8 +8003,6 @@ void Unit::SetInCombatState(bool PvP, Unit* enemy)
 
         if (InstanceData* mapInstance = GetInstanceData())
             mapInstance->OnCreatureEnterCombat(creature);
-
-        creature->CallAssistance();
 
         creature->SetCanCheckForHelp(false);
         creature->m_events.AddEvent(new UnitLambdaEvent(*creature, [](Unit& unit)
@@ -9050,7 +9062,7 @@ float Unit::GetModifierValue(UnitMods unitMod, UnitModifierType modifierType) co
 
 float Unit::GetTotalStatValue(Stats stat) const
 {
-    UnitMods unitMod = UnitMods(UNIT_MOD_STAT_START + stat);
+    UnitMods unitMod = UnitMods(static_cast<uint32>(UNIT_MOD_STAT_START) + static_cast<uint32>(stat));
 
     if (m_auraModifiersGroup[unitMod][TOTAL_PCT] <= 0.0f)
         return 0.0f;
@@ -9066,7 +9078,7 @@ float Unit::GetTotalStatValue(Stats stat) const
 
 float Unit::GetTotalResistanceValue(SpellSchools school) const
 {
-    UnitMods unitMod = UnitMods(UNIT_MOD_RESISTANCE_START + school);
+    UnitMods unitMod = UnitMods(static_cast<uint32>(UNIT_MOD_RESISTANCE_START) + static_cast<uint32>(school));
 
     if (m_auraModifiersGroup[unitMod][TOTAL_PCT] <= 0.0f)
         return 0.0f;
@@ -9169,7 +9181,7 @@ float Unit::GetTotalAttackPowerValue(WeaponAttackType attType) const
             return 0.0f;
         return ap * (1.0f + GetFloatValue(UNIT_FIELD_RANGED_ATTACK_POWER_MULTIPLIER));
     }
-    int32 ap = GetInt32Value(UNIT_FIELD_ATTACK_POWER) + GetInt16Value(UNIT_FIELD_ATTACK_POWER_MODS, 0) + GetInt16Value(UNIT_FIELD_ATTACK_POWER_MODS, 1);
+    int32 ap = GetInt32Value(UNIT_FIELD_ATTACK_POWER) + GetInt16Value(UNIT_FIELD_ATTACK_POWER_MODS, size_t(AttackPowerModSign::MOD_SIGN_POS)) + GetInt16Value(UNIT_FIELD_ATTACK_POWER_MODS, size_t(AttackPowerModSign::MOD_SIGN_NEG));
     if (ap < 0)
         return 0.0f;
     return ap * (1.0f + GetFloatValue(UNIT_FIELD_ATTACK_POWER_MULTIPLIER));
@@ -9268,7 +9280,7 @@ void Unit::SetPower(Powers power, uint32 val)
     if (maxPower < val)
         val = maxPower;
 
-    SetStatInt32Value(UNIT_FIELD_POWER1 + power, val);
+    SetStatInt32Value(static_cast<uint16>(UNIT_FIELD_POWER1) + static_cast<uint16>(power), int32(val));
 
     // group update
     if (GetTypeId() == TYPEID_PLAYER)
@@ -9295,7 +9307,7 @@ void Unit::SetPower(Powers power, uint32 val)
 void Unit::SetMaxPower(Powers power, uint32 val)
 {
     uint32 cur_power = GetPower(power);
-    SetStatInt32Value(UNIT_FIELD_MAXPOWER1 + power, val);
+    SetStatInt32Value(static_cast<uint16>(UNIT_FIELD_MAXPOWER1) + static_cast<uint16>(power), val);
 
     // group update
     if (GetTypeId() == TYPEID_PLAYER)
@@ -9316,7 +9328,7 @@ void Unit::SetMaxPower(Powers power, uint32 val)
 
 void Unit::ApplyPowerMod(Powers power, uint32 val, bool apply)
 {
-    ApplyModUInt32Value(UNIT_FIELD_POWER1 + power, val, apply);
+    ApplyModUInt32Value(static_cast<uint16>(UNIT_FIELD_POWER1) + static_cast<uint16>(power), val, apply);
 
     // group update
     if (GetTypeId() == TYPEID_PLAYER)
@@ -9334,7 +9346,7 @@ void Unit::ApplyPowerMod(Powers power, uint32 val, bool apply)
 
 void Unit::ApplyMaxPowerMod(Powers power, uint32 val, bool apply)
 {
-    ApplyModUInt32Value(UNIT_FIELD_MAXPOWER1 + power, val, apply);
+    ApplyModUInt32Value(static_cast<uint16>(UNIT_FIELD_MAXPOWER1) + static_cast<uint16>(power), val, apply);
 
     // group update
     if (GetTypeId() == TYPEID_PLAYER)
@@ -10461,18 +10473,18 @@ bool Unit::HasBreakableByDamageCrowdControlAura(Unit* excludeCasterChannel, uint
 
 void Unit::ApplyAttackTimePercentMod(WeaponAttackType att, float val, bool apply)
 {
-    float oldVal = GetFloatValue(UNIT_FIELD_BASEATTACKTIME + att);
+    float oldVal = GetFloatValue(static_cast<uint16>(UNIT_FIELD_BASEATTACKTIME) + static_cast<uint16>(att));
     if (val > 0)
     {
         ApplyPercentModFloatVar(m_modAttackSpeedPct[att], val, !apply);
-        ApplyPercentModFloatValue(UNIT_FIELD_BASEATTACKTIME + att, val, !apply);
+        ApplyPercentModFloatValue(static_cast<uint16>(UNIT_FIELD_BASEATTACKTIME) + static_cast<uint16>(att), val, !apply);
     }
     else
     {
         ApplyPercentModFloatVar(m_modAttackSpeedPct[att], -val, apply);
-        ApplyPercentModFloatValue(UNIT_FIELD_BASEATTACKTIME + att, -val, apply);
+        ApplyPercentModFloatValue(static_cast<uint16>(UNIT_FIELD_BASEATTACKTIME) + static_cast<uint16>(att), -val, apply);
     }
-    float newVal = GetFloatValue(UNIT_FIELD_BASEATTACKTIME + att);
+    float newVal = GetFloatValue(static_cast<uint16>(UNIT_FIELD_BASEATTACKTIME) + static_cast<uint16>(att));
     uint32 attackTimer = getAttackTimer(att);
     int32 diff = newVal - oldVal;
     setAttackTimer(att, diff < -int32(attackTimer) ? 0 : attackTimer + diff);
@@ -11197,6 +11209,24 @@ Unit* Unit::TakePossessOf(SpellEntry const* spellEntry, uint32 effIdx, float x, 
     return possessed;
 }
 
+void Unit::SendMessageToAllWhoSeeMeMove(WorldPacket const& data, ObjectGuid moverOwner) const
+{
+    if (IsInWorld())
+    {
+        GuidSet const& clientGuidsIAmAt = GetClientGuidsIAmAt();
+        for (ObjectGuid guid : clientGuidsIAmAt)
+        {
+            if (moverOwner == guid)
+                continue;
+            if (Player* player = GetMap()->GetPlayer(guid))
+                player->GetSession()->SendPacket(data);
+        }
+
+        if (IsPlayer() && moverOwner != GetObjectGuid())
+            static_cast<Player const*>(this)->GetSession()->SendPacket(data);
+    }
+}
+
 bool Unit::TakePossessOf(Unit* possessed)
 {
     // Possess is a unique advertised charm, another advertised charm already exists: we should get rid of it first
@@ -11352,8 +11382,6 @@ bool Unit::TakeCharmOf(Unit* charmed, uint32 spellId, bool advertised /*= true*/
 
     CharmInfo* charmInfo = charmed->InitCharmInfo(charmed);
 
-    bool isPossessCharm = IsPossessCharmType(spellId);
-
     Position combatStartPosition;
 
     if (charmed->IsPlayer())
@@ -11366,15 +11394,10 @@ bool Unit::TakeCharmOf(Unit* charmed, uint32 spellId, bool advertised /*= true*/
 
         charmInfo->SetCharmState("PetAI");
 
-        if (isPossessCharm)
-            charmInfo->InitPossessCreateSpells();
-        else
-        {
-            charmInfo->InitCharmCreateSpells();
-            charmed->AI()->SetReactState(REACT_DEFENSIVE);
-            charmInfo->SetCommandState(COMMAND_FOLLOW);
-            charmInfo->SetIsRetreating(true);
-        }
+        charmInfo->InitCharmCreateSpells();
+        charmed->AI()->SetReactState(REACT_DEFENSIVE);
+        charmInfo->SetCommandState(COMMAND_FOLLOW);
+        charmInfo->SetIsRetreating(true);
 
         // vanilla core only code - what is this for?
         charmedPlayer->ForceHealAndPowerUpdateInZone();
@@ -11387,10 +11410,8 @@ bool Unit::TakeCharmOf(Unit* charmed, uint32 spellId, bool advertised /*= true*/
 
         charmedCreature->GetCombatStartPosition(combatStartPosition);
 
-        if (charmed->AI() && charmed->AI()->CanHandleCharm())
-            charmInfo->SetCharmState("", false);
-        else
-            charmInfo->SetCharmState("PetAI");
+        bool changeAI = !static_cast<Creature*>(charmed)->GetSettings().HasFlag(CreatureStaticFlags2::ACTION_TRIGGERS_WHILE_CHARMED);
+        charmInfo->SetCharmState(changeAI ? "PetAI" : "", changeAI);
 
         charmedCreature->SetWalk(IsWalking(), true);
 
@@ -11401,11 +11422,9 @@ bool Unit::TakeCharmOf(Unit* charmed, uint32 spellId, bool advertised /*= true*/
         if (uint32 charmedSpellList = charmedCreature->GetCreatureInfo()->CharmedSpellList)
             charmedCreature->SetSpellList(charmedSpellList);
 
-        if (isPossessCharm)
-            charmInfo->InitPossessCreateSpells();
-        else
+        charmInfo->InitCharmCreateSpells();
+        if (changeAI)
         {
-            charmInfo->InitCharmCreateSpells();
             charmed->AI()->SetReactState(REACT_DEFENSIVE);
             charmInfo->SetCommandState(COMMAND_FOLLOW);
             charmInfo->SetIsRetreating(true);
@@ -11556,11 +11575,13 @@ void Unit::Uncharm(Unit* charmed, uint32 spellId)
     else
         m_charmedUnitsPrivate.erase(charmedGuid);
 
+    bool changeAI = charmed->IsCreature() && static_cast<Creature*>(charmed)->GetSettings().HasFlag(CreatureStaticFlags2::ACTION_TRIGGERS_WHILE_CHARMED);
+
     // Update movement of the victim
     // Update crowd controlled movement if required:
     // TODO: requires motionmster upgrade for proper handling past this line
     // We are effectively rebuilding motion master contents: confused > fleeing > panic
-    if (!IsPossessCharmType(spellId))
+    if (changeAI)
     {
         const bool panic = charmed->IsInPanic(), fleeing = charmed->IsFleeing(), confused = charmed->IsConfused();
 
