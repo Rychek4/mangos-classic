@@ -62,9 +62,22 @@ decision worth making, and it saves you most of a day.
 winget install --id Oracle.MySQL -e --source winget
 ```
 
-If winget does not have it, get MySQL Installer from dev.mysql.com and choose
-**Server only**. Set a root password when it asks and write it down; you need
-it exactly once, in step 3. Keep port 3306.
+**Installing is not the same as configuring.** winget puts the files on disk
+and stops there: no Windows service, no data directory, no root password. The
+tool that does that part is **MySQL Configurator**, which ships alongside the
+server. Find it and run it as administrator:
+
+```powershell
+Get-ChildItem "C:\Program Files\MySQL\MySQL Server 8.4\bin" -Filter "*onfigurator*"
+```
+
+Take the defaults except: **Development Computer**, port **3306**, and leave
+**Windows Service** and **Start at System Startup** ticked - that is the part
+winget skipped. Set a root password and write it down; you need it exactly
+once, in step 3. Any character is fine in it.
+
+If you would rather install by hand, dev.mysql.com has the MSI, which runs the
+Configurator for you at the end.
 
 **Checkpoint.** Two things. The service is running:
 
@@ -342,6 +355,40 @@ Exactly what it says, and it is checked before the password prompt so you do
 not waste a password on a connection that was never going to happen. `mysql`
 being installed is not the same as `mysqld` running. See the checkpoint in
 step 1.
+
+**`Get-Service MySQL*` finds nothing at all.**
+The files are installed but nothing was ever configured - the usual result of
+a command-line install. Run MySQL Configurator from the server's `bin` folder,
+as described in step 1. If there is no configurator there either, you have a
+bare unpacked copy, and it needs initialising by hand in an elevated prompt:
+
+```powershell
+$bin  = "C:\Program Files\MySQL\MySQL Server 8.4\bin"
+$ini  = "C:\ProgramData\MySQL\MySQL Server 8.4\my.ini"
+
+New-Item -ItemType Directory -Force -Path (Split-Path $ini) | Out-Null
+@"
+[mysqld]
+basedir="C:/Program Files/MySQL/MySQL Server 8.4"
+datadir="C:/ProgramData/MySQL/MySQL Server 8.4/Data"
+port=3306
+bind-address=127.0.0.1
+"@ | Set-Content -Path $ini -Encoding ASCII
+
+& "$bin\mysqld.exe" --defaults-file="$ini" --initialize-insecure --console
+& "$bin\mysqld.exe" --install MySQL84 --defaults-file="$ini"
+Start-Service MySQL84
+& "$bin\mysql.exe" -u root --skip-password -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'PickAPassword';"
+```
+
+Check `Test-Path "C:\ProgramData\MySQL\MySQL Server 8.4\Data"` first: if that
+directory already has files in it, skip the `--initialize-insecure` line, which
+refuses to run over a populated data directory.
+
+`--initialize-insecure` leaves root with no password for the few seconds before
+the last line sets one, which is why `bind-address=127.0.0.1` is in the file.
+Nothing off this machine can reach MySQL either way, and that binding is the
+right one for this project permanently.
 
 **"MySQL rejected that root password."**
 This one really is the password. Different message, different cause — the
