@@ -455,14 +455,19 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 
 The world database and the core each move on their own, and the server refuses
 to start on any mismatch between them. So a core update is always three steps,
-not one:
+not one - and the servers have to be down first, because `cmake --install`
+cannot overwrite an `.exe` that is running. Ctrl-C in each server window, or:
 
 ```powershell
+Stop-Process -Name realmd, mangosd -ErrorAction SilentlyContinue
 cd C:\wow\mangos-classic
 cmake --build build --config Release --parallel
 cmake --install build --config Release
 setup\Update-Databases.ps1                   # applies whatever the new core needs
 ```
+
+If the install fails with `Permission denied` on an `.exe`, that is what it
+means: one of them is still up. Stop it and re-run only the install line.
 
 `Test-Setup.ps1` will tell you if you forgot the third.
 
