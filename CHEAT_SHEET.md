@@ -214,9 +214,19 @@ Both are safe to run at any time; `--act` is the only thing that changes the wor
 
 ---
 
-## After pulling new code
+## Pulling new code
 
-**Narrator** — pull, and if `pyproject.toml` changed, `pip install -e ".[dev,ui]"`. No rebuild, no restart of the server.
+All three, every time; a pull that finds nothing new is free:
+
+```powershell
+cd C:\wow\mangos-classic  ; git pull origin claude/documentation-review-s056qd
+cd C:\wow\playerbots      ; git pull origin claude/documentation-review-s056qd
+cd C:\wow\Azeroth_Narrator; git pull origin claude/documentation-review-s056qd
+```
+
+Then, depending on what came in:
+
+**Narrator** — if `pyproject.toml` changed, `pip install -e ".[dev,ui]"`. Restart `narrator run` and `narrator-ui`. No rebuild, no server restart.
 
 **Server or module** — servers down first, then:
 ```powershell
