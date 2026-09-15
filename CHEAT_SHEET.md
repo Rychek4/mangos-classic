@@ -83,12 +83,14 @@ Ctrl-C                     in its window
 
 `realmlist.wtf` contains one line: `set realmlist 127.0.0.1`. Video options: **windowed (borderless)**, or the overlay cannot draw over it.
 
-**In game**
+**In game** - or `/add Name` and `/remove Name` in the overlay, which do the same
 ```
 .bot add <name>          give yourself a companion (Alliance name for an Alliance character)
 .bot remove <name>       send one home
 .bot list                who you have
 ```
+Companions are put on the module's `silent` strategy when they join, so the
+party channel is them talking, not the module reporting what it equipped.
 
 **Stop** — log out normally. Ctrl-C the director first if a cast bot is standing near you, so it can be sent home.
 
@@ -138,6 +140,8 @@ narrator-ui --console-only
 ```
 /p text            party         /y text      yell        /e text     emote
 /w Name text       whisper
+/add [Name]        a companion joins you (blank picks one) /remove Name  a companion goes home
+/suggest           who is worth adding
 /summon Name       bring a roster character to you       /dismiss    send the cast home
 /cast Name text    put words in a cast member's mouth
 /pause  /resume    the director
