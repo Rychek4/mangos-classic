@@ -178,8 +178,10 @@ level, quest, death, every companion line the model wrote and how long it took,
 what you typed in the overlay, and any warnings. Send the newest `.log`; the
 `.jsonl` beside it is the raw traffic if more is needed.
 
-**Scenes are rare on purpose.** The storyteller waits `scene_min_gap` (30 minutes) between scenes,
-so a short session sees one. To see more while testing, put `"scene_min_gap": 600` in `narrator.json`.
+**Scenes are weather.** The storyteller offers itself an opening every 3 minutes (`scene_interval`)
+and waits at least 2 minutes between scenes (`scene_min_gap`), on top of arrivals and fights. A scene
+waits until you have stood still for 8 seconds, and an arrival scene until you have been in the new
+place for 15 seconds, so you are there to see it. Scene lines show in the overlay in a lavender colour.
 
 ## The story
 
