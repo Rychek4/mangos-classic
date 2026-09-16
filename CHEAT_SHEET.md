@@ -187,10 +187,12 @@ and waits at least 2 minutes between scenes (`scene_min_gap`), on top of arrival
 waits until you have stood still for 8 seconds, and an arrival scene until you have been in the new
 place for 15 seconds, so you are there to see it. Scene lines show in the overlay in a lavender colour.
 
-**When the overlay glows,** look straight ahead: the stranger appears about 9 yards in front of
-you and walks up. They stand 12 seconds after their last line, then walk off for 20 seconds before
-they log out, so a scene is about a minute of someone to look at. The log says `story:gone Name is gone`
-when they have.
+**When the overlay glows,** the caption says where to look. Three shapes: someone appears about
+9 yards in front of you and walks up (sometimes two of them); two or three people stand off to one
+side talking to each other and you overhear them (they never come over); or a pair comes past you
+mid-conversation and keeps going. In a town most scenes are overheard; on the road most come over.
+They stand 12 seconds after their last line, then walk off for 20 seconds before they log out. The
+log says `story:gone Name is gone` when they have. Companions remember the scenes they stood through.
 
 **If you still cannot see them,** the log will say why. `placed 74 yards below Bale` means the
 module is older than the height fix (rebuild it; see *Pulling new code*). No such line and no stranger
@@ -312,7 +314,8 @@ cmake --install build --config Release
 powershell -ExecutionPolicy Bypass -File setup\Update-Databases.ps1
 powershell -ExecutionPolicy Bypass -File setup\Test-Setup.ps1
 ```
-This round's module fixes (strangers placed on the ground instead of under it; no re-roll of Ansel
-or a stranger at login) need this rebuild. You will know it took when a scene's stranger is standing
-in front of you and `/add Ansel` gets a level-3 Ansel.
+This round's module changes need the rebuild: strangers placed on the ground instead of under it,
+no re-roll of Ansel or a stranger at login, no `<AFK>` over a stranger's head, and `bot.face` so two
+strangers talking to each other look at each other (without it they both face you, and the log says
+`the module does not know bot.face` once).
 If the module added new source files, run the `cmake -B build ...` configure line from `BUILDING_PLAYERBOTS.md` before the build. `Test-Setup.ps1` tells you if the installed binary is older than the module source.
