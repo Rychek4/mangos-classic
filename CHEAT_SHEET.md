@@ -156,6 +156,10 @@ together; `--font` sets the text size in points on its own; `--opacity 1` is the
 `AiPlayerbot.SummonAtInnkeepersEnabled = 0` in `aiplayerbot.conf`. There is no rest verb; a stopped
 companion eats and drinks by itself when low. The same as typing `/all follow` and so on.
 
+**Camp** — the button at the end of the row (or `/camp`, `/camp 20` for twenty minutes). The companions
+stop, sit in a ring around you and talk among themselves, from their own memories; you can join in.
+Press it again (or `/break`) and they stand and fall in behind you. Ten minutes by default. No fire yet.
+
 **Quests** — when you accept a quest, every companion is told `accept` and takes what that NPC offers
 them; when you turn one in, they are told `talk` and turn in what they have complete. The game's own
 rules decide who can (a companion behind on a chain stays behind). It needs them near you, which
@@ -171,6 +175,7 @@ also mention work nearby that you could take up, in their own words (needs this 
 /suggest           who is worth adding
 /summon Name       bring a roster character to you       /dismiss    send the cast home
 /cast Name text    put words in a cast member's mouth
+/camp [minutes]    make camp; /break ends it
 /pause  /resume    the director
 /weather rain 0.8  zone weather
 /bot Name follow   a playerbots command to one companion
