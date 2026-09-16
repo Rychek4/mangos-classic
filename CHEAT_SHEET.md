@@ -253,6 +253,10 @@ It is fine to run these while `narrator run` is up; the two share the database.
 Ansel is made at level 3. Before this round the module re-rolled him to a random level the first
 time he logged in (that is where the level-43 Ansel and "too low level" came from); the rebuilt
 module leaves made characters and requested logins at the level they were given.
+**A recurring stranger** is a character in the file with `"owner": "cast"` and a `"home"` (a zone or
+area name, like `Elwynn Forest`). The storyteller brings them back in scenes there, remembering the
+last time; the example file has Wenna, a pedlar on the Goldshire road. Set `"level": 3` on Ansel in
+your copy of the file (the example says so now).
 They land on `castbot0`, `castbot1`, ... accounts (`AiPlayerbot.Bridge.CastAccountPrefix`),
 nine each, and the random-bot manager leaves them alone. Bring one in with
 `/add Ansel` or `/summon Ansel` like anyone else. A character that exists is
