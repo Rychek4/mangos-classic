@@ -139,7 +139,11 @@ python -m narrator run --llm openai:http://127.0.0.1:8080/v1 --record session.js
 narrator-ui                      # both windows
 narrator-ui --overlay-only
 narrator-ui --console-only
+narrator-ui --scale 2 --font 18 --opacity 0.9   # smaller, a chosen text size, a little see-through
 ```
+The overlay is three times its old size, text included, and opaque, made to sit over the game's own
+chat frame. Drag it there once; the position is remembered. `--scale` sizes the window and the text
+together; `--font` sets the text size in points on its own; `--opacity 1` is the default.
 
 **The X on the console window only hides the console.** The overlay keeps running over the game; that is deliberate.
 
