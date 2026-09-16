@@ -221,8 +221,12 @@ python -m narrator character example               # writes characters.example.j
 copy characters.example.json characters.json       # then edit
 python -m narrator character sync                  # makes whichever the server does not have (server up)
 python -m narrator character list                  # the file, the record, what the server has
-python -m narrator character delete Ansel          # must be logged out first
+python -m narrator character level Ansel 3         # set his level in place (he must be in the party)
+python -m narrator character delete Ansel          # logs him out first, then deletes
 ```
+Ansel is made at level 3 now. If an older run left him high (an "add" fails with "too low level",
+which means he is *above* you), fix him without a server rebuild: `/remove Ansel` in the overlay,
+then `python -m narrator character delete Ansel`, then `python -m narrator character sync`.
 They land on `castbot0`, `castbot1`, ... accounts (`AiPlayerbot.Bridge.CastAccountPrefix`),
 nine each, and the random-bot manager leaves them alone. Bring one in with
 `/add Ansel` or `/summon Ansel` like anyone else. A character that exists is
