@@ -147,11 +147,17 @@ narrator-ui --console-only
 - **Console** — bring the console back
 - **Quit** — close the whole UI cleanly
 
+**The button row above the box** — one order to every companion: **Come** (`summon`), **Follow**,
+**Stay**, **Attack** (your target), **Flee** (run to you), **Free**. Come works near an innkeeper unless
+`AiPlayerbot.SummonAtInnkeepersEnabled = 0` in `aiplayerbot.conf`. There is no rest verb; a stopped
+companion eats and drinks by itself when low. The same as typing `/all follow` and so on.
+
 **Type in the overlay** — plain text is said by your character.
 ```
 /p text            party         /y text      yell        /e text     emote
 /w Name text       whisper
 /add [Name]        a companion joins you (blank picks one) /remove Name  a companion goes home
+/all command       one playerbots command to every companion (follow, stay, attack, flee, summon, free)
 /suggest           who is worth adding
 /summon Name       bring a roster character to you       /dismiss    send the cast home
 /cast Name text    put words in a cast member's mouth
@@ -171,6 +177,9 @@ It has everything said (and whether you could hear it), every zone change, fight
 level, quest, death, every companion line the model wrote and how long it took,
 what you typed in the overlay, and any warnings. Send the newest `.log`; the
 `.jsonl` beside it is the raw traffic if more is needed.
+
+**Scenes are rare on purpose.** The storyteller waits `scene_min_gap` (30 minutes) between scenes,
+so a short session sees one. To see more while testing, put `"scene_min_gap": 600` in `narrator.json`.
 
 ## The story
 
