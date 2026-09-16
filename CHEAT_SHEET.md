@@ -164,6 +164,14 @@ narrator-ui --console-only
 
 ---
 
+## After a session: the file to send
+
+Every `narrator run` writes one text file: `C:\wow\Azeroth_Narrator\sessions\<date>-<time>.log`.
+It has everything said (and whether you could hear it), every zone change, fight,
+level, quest, death, every companion line the model wrote and how long it took,
+what you typed in the overlay, and any warnings. Send the newest `.log`; the
+`.jsonl` beside it is the raw traffic if more is needed.
+
 ## The story
 
 ```powershell
