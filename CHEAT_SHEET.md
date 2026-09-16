@@ -180,6 +180,19 @@ python -m narrator story reset                     # forget what was played
 ```
 `STORY_BIBLE.md` is the file format.
 
+## The agent's character (Isaac), for now a brief
+
+```powershell
+cd C:\wow\Azeroth_Narrator
+python -m narrator isaac brief                     # writes isaac-brief.md (server optional; better with it up)
+python -m narrator isaac load ansel.json           # strict; names every problem
+python -m narrator isaac show                      # wants, with [now] and [done]
+python -m narrator isaac reset                     # forget which wants were done
+```
+Hand `isaac-brief.md` to Isaac, save what comes back as a .json file, load it.
+Needs `"isaac_character": "Ansel"` in the config; from the next `narrator run`
+Ansel is driven from the brief. `ISAAC_BRIEF.md` is the file format.
+
 ## Characters made to order
 
 Isaac's body and the recurring cast are created, not picked from the pool.
