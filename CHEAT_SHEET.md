@@ -180,6 +180,22 @@ python -m narrator story reset                     # forget what was played
 ```
 `STORY_BIBLE.md` is the file format.
 
+## Characters made to order
+
+Isaac's body and the recurring cast are created, not picked from the pool.
+```powershell
+cd C:\wow\Azeroth_Narrator
+python -m narrator character example               # writes characters.example.json (Ansel is in it)
+copy characters.example.json characters.json       # then edit
+python -m narrator character sync                  # makes whichever the server does not have (server up)
+python -m narrator character list                  # the file, the record, what the server has
+python -m narrator character delete Ansel          # must be logged out first
+```
+They land on `castbot0`, `castbot1`, ... accounts (`AiPlayerbot.Bridge.CastAccountPrefix`),
+nine each, and the random-bot manager leaves them alone. Bring one in with
+`/add Ansel` or `/summon Ansel` like anyone else. A character that exists is
+never changed by a later sync.
+
 ## Diagnostics
 
 ```powershell
