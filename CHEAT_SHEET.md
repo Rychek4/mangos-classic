@@ -156,6 +156,12 @@ together; `--font` sets the text size in points on its own; `--opacity 1` is the
 `AiPlayerbot.SummonAtInnkeepersEnabled = 0` in `aiplayerbot.conf`. There is no rest verb; a stopped
 companion eats and drinks by itself when low. The same as typing `/all follow` and so on.
 
+**Quests** — when you accept a quest, every companion is told `accept` and takes what that NPC offers
+them; when you turn one in, they are told `talk` and turn in what they have complete. The game's own
+rules decide who can (a companion behind on a chain stays behind). It needs them near you, which
+following does. Turn it off with `"quest_tell": false` in `narrator.json`. Strangers in scenes may
+also mention work nearby that you could take up, in their own words (needs this round's rebuild).
+
 **Type in the overlay** — plain text is said by your character.
 ```
 /p text            party         /y text      yell        /e text     emote
@@ -319,7 +325,8 @@ powershell -ExecutionPolicy Bypass -File setup\Update-Databases.ps1
 powershell -ExecutionPolicy Bypass -File setup\Test-Setup.ps1
 ```
 This round's module changes need the rebuild: strangers placed on the ground instead of under it,
-no re-roll of Ansel or a stranger at login, no `<AFK>` over a stranger's head, and `bot.face` so two
+no re-roll of Ansel or a stranger at login, no `<AFK>` over a stranger's head, `bot.face` so two
 strangers talking to each other look at each other (without it they both face you, and the log says
-`the module does not know bot.face` once).
+`the module does not know bot.face` once), and `quest.nearby` so a stranger can mention work close by
+(without it the log says `the module does not know quest.nearby` once).
 If the module added new source files, run the `cmake -B build ...` configure line from `BUILDING_PLAYERBOTS.md` before the build. `Test-Setup.ps1` tells you if the installed binary is older than the module source.
