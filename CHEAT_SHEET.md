@@ -183,6 +183,15 @@ and waits at least 2 minutes between scenes (`scene_min_gap`), on top of arrival
 waits until you have stood still for 8 seconds, and an arrival scene until you have been in the new
 place for 15 seconds, so you are there to see it. Scene lines show in the overlay in a lavender colour.
 
+**When the overlay glows,** look straight ahead: the stranger appears about 9 yards in front of
+you and walks up. They stand 12 seconds after their last line, then walk off for 20 seconds before
+they log out, so a scene is about a minute of someone to look at. The log says `story:gone Name is gone`
+when they have.
+
+**If you still cannot see them,** the log will say why. `placed 74 yards below Bale` means the
+module is older than the height fix (rebuild it; see *Pulling new code*). No such line and no stranger
+in front of you: send the log.
+
 ## The story
 
 ```powershell
@@ -224,9 +233,20 @@ python -m narrator character list                  # the file, the record, what 
 python -m narrator character level Ansel 3         # set his level in place (he must be in the party)
 python -m narrator character delete Ansel          # logs him out first, then deletes
 ```
-Ansel is made at level 3 now. If an older run left him high (an "add" fails with "too low level",
-which means he is *above* you), fix him without a server rebuild: `/remove Ansel` in the overlay,
-then `python -m narrator character delete Ansel`, then `python -m narrator character sync`.
+**Always from `C:\wow\Azeroth_Narrator`.** The command reads `characters.json` and `narrator.sqlite3`
+from the folder you are standing in; run from `C:\WINDOWS\system32` it looks for them there.
+`Could not reach the bridge at 127.0.0.1:8890 (WinError 1225)` means mangosd is not running (the
+server refused the connection), not that anything is locked: start the server, then run it again.
+It is fine to run these while `narrator run` is up; the two share the database.
+
+**The easy way, from the overlay** while everything is running:
+```
+/remake Ansel        deletes him (logging him out first) and makes him again from characters.json
+/level Ansel 3       sets his level in place (he must be in the party: /add Ansel first)
+```
+Ansel is made at level 3. Before this round the module re-rolled him to a random level the first
+time he logged in (that is where the level-43 Ansel and "too low level" came from); the rebuilt
+module leaves made characters and requested logins at the level they were given.
 They land on `castbot0`, `castbot1`, ... accounts (`AiPlayerbot.Bridge.CastAccountPrefix`),
 nine each, and the random-bot manager leaves them alone. Bring one in with
 `/add Ansel` or `/summon Ansel` like anyone else. A character that exists is
@@ -288,4 +308,7 @@ cmake --install build --config Release
 powershell -ExecutionPolicy Bypass -File setup\Update-Databases.ps1
 powershell -ExecutionPolicy Bypass -File setup\Test-Setup.ps1
 ```
+This round's module fixes (strangers placed on the ground instead of under it; no re-roll of Ansel
+or a stranger at login) need this rebuild. You will know it took when a scene's stranger is standing
+in front of you and `/add Ansel` gets a level-3 Ansel.
 If the module added new source files, run the `cmake -B build ...` configure line from `BUILDING_PLAYERBOTS.md` before the build. `Test-Setup.ps1` tells you if the installed binary is older than the module source.
