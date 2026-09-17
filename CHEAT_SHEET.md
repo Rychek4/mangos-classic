@@ -192,6 +192,15 @@ puts it away now. `narrator-ui --scene-hold 90` changes the countdown.
 character. The buttons and Escape do the same. If your client's window is not titled
 `World of Warcraft`, start with `narrator-ui --game "Your Title"`.
 
+**Enter in the game brings the caret to the overlay.** With the game in front, press Enter: the
+game's own chat frame stays shut and the overlay comes forward with the caret in its box, so the
+round trip is Enter, type, Enter. The game keeps its own chat box for the `.` commands the overlay
+refuses: press the **numpad's Enter**, or **Shift+Enter**, and the game opens its box as before.
+To use a different key, `narrator-ui --hotkey ctrl+enter` (or `f12`, `shift+grave`); `--hotkey off`
+leaves the game's keys alone; `--hotkey enter` puts it back. The key is remembered like `--scale`.
+If the game's chat frame still opens when you press Enter, the client is reading the keyboard in a
+way the hook cannot intercept: pick a key the game does not use, such as `--hotkey f12`.
+
 **Pacing.** Everyone speaks from one clock: a line stays up for its reading time before the next,
 and long replies come in sentence-sized beats. In `narrator.json`: `"speech_chars_per_second": 15`,
 `"speech_floor": 1.5`, `"speech_cap": 9` (seconds), `"group_answers": 2` (how many companions answer
