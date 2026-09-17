@@ -168,6 +168,15 @@ rules decide who can (a companion behind on a chain stays behind). It needs them
 following does. Turn it off with `"quest_tell": false` in `narrator.json`. Strangers in scenes may
 also mention work nearby that you could take up, in their own words (needs this round's rebuild).
 
+**Enter hands the keyboard back to the game.** Type, press Enter, and the next keypress moves your
+character. The buttons and Escape do the same. If your client's window is not titled
+`World of Warcraft`, start with `narrator-ui --game "Your Title"`.
+
+**Pacing.** Everyone speaks from one clock: a line stays up for its reading time before the next,
+and long replies come in sentence-sized beats. In `narrator.json`: `"speech_chars_per_second": 15`,
+`"speech_floor": 1.5`, `"speech_cap": 9` (seconds), `"group_answers": 2` (how many companions answer
+one group line).
+
 **Type in the overlay** — plain text is said by your character.
 ```
 /p text            party         /y text      yell        /e text     emote
