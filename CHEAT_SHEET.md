@@ -273,6 +273,20 @@ nine each, and the random-bot manager leaves them alone. Bring one in with
 `/add Ansel` or `/summon Ansel` like anyone else. A character that exists is
 never changed by a later sync.
 
+## The auction bot
+
+The playerbots module carries an auction-house bot (ike3's AhBot) that this project does not use. It
+reads `ahbot.conf` from the folder your `mangosd.conf` is in. If the console fills with
+`AhBot is now checking auctions in the background ... Next check in 0 seconds`, that file is missing
+and an older build ran the bot on uninitialised settings. Fix on the spot: make `ahbot.conf` next to
+`mangosd.conf` with one line
+```
+AhBot.Enabled = 0
+```
+and restart mangosd. The rebuilt module is off by itself when the file is missing, refuses a zero
+interval, and says at startup `AhBot enabled (ahbot.conf); checking auctions every N seconds` or
+`AhBot is Disabled`.
+
 ## Diagnostics
 
 ```powershell
