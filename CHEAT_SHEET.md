@@ -154,14 +154,18 @@ back to scaled), and the last value you passed for each is remembered until you 
 - **Quit** — close the whole UI cleanly
 
 **The button row above the box** — one order to every companion: **Come** (`summon`), **Follow**,
-**Roam**, **Errands**, **Stay**, **Attack** (your target), **Flee** (run to you). Come works near an
-innkeeper unless `AiPlayerbot.SummonAtInnkeepersEnabled = 0` in `aiplayerbot.conf`. There is no rest
-verb; a stopped companion eats and drinks by itself when low. `/all free` still lifts every leash.
+**Near**, **Far**, **Errands**, **Stay**, **Attack** (your target), **Flee** (run to you). Come works
+near an innkeeper unless `AiPlayerbot.SummonAtInnkeepersEnabled = 0` in `aiplayerbot.conf`. There is
+no rest verb; a stopped companion eats and drinks by itself when low. `/all free` still lifts every
+leash.
 
-**Roam** lets them wander within 15 yards of you and come back when they stray (`"roam_leash"` in
-`narrator.json`). **Errands** lets them sell, buy, repair and train around you within 80 yards
-(`"errands_leash"`), and keeps that up until you press Follow. For training to actually buy spells,
-set `AiPlayerbot.AutoTrainSpells = yes` in `aiplayerbot.conf`. Weapon types at a weapon master are not
+**Follow** is the formation, for a road march or a dungeon. **Near** lets them wander within 15 yards
+of you (free inside 5, drifting back between, running back beyond), for towns and careful ground.
+**Far** is the same within 25 yards, for open roads. **Errands** lets them sell, buy, repair and train
+around you within 80 yards and keeps that up until you press another button. Whoever joins the party
+takes its current mode; it starts in Near (`"default_mode"`, `"near_leash"`, `"far_leash"`,
+`"errands_leash"` in `narrator.json`). For training to actually buy spells, set
+`AiPlayerbot.AutoTrainSpells = yes` in `aiplayerbot.conf`. Weapon types at a weapon master are not
 learned yet. The lit button is the mode you are in.
 
 **What they are doing** shows under the status line, one entry per companion: `Felindy · selling to
