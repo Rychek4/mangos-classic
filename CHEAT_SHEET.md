@@ -168,9 +168,10 @@ takes its current mode; it starts in Near (`"default_mode"`, `"near_leash"`, `"f
 `AiPlayerbot.AutoTrainSpells = yes` in `aiplayerbot.conf`. Weapon types at a weapon master are not
 learned yet. The lit button is the mode you are in.
 
-**What they are doing** shows under the status line, one entry per companion: `Felindy · selling to
-Godric Rothgar · 22 yd`. It needs this round's module rebuild; without it the line stays empty and
-the buttons still work.
+**What they are doing** shows under the status line, a row per companion: **Felindy** selling to
+Godric Rothgar · 22 yd. In a fight it says what they are actually doing: casting Smite, closing in,
+on your target, pulling, buffing the party with Power Word: Fortitude. It needs the module rebuilt at
+least once since this landed; without it the rows stay empty and the buttons still work.
 
 **Camp** — the button at the end of the row (or `/camp`, `/camp 20` for twenty minutes). The companions
 stop, sit in a ring around you and talk among themselves, from their own memories; you can join in.
