@@ -154,9 +154,19 @@ back to scaled), and the last value you passed for each is remembered until you 
 - **Quit** — close the whole UI cleanly
 
 **The button row above the box** — one order to every companion: **Come** (`summon`), **Follow**,
-**Stay**, **Attack** (your target), **Flee** (run to you), **Free**. Come works near an innkeeper unless
-`AiPlayerbot.SummonAtInnkeepersEnabled = 0` in `aiplayerbot.conf`. There is no rest verb; a stopped
-companion eats and drinks by itself when low. The same as typing `/all follow` and so on.
+**Roam**, **Errands**, **Stay**, **Attack** (your target), **Flee** (run to you). Come works near an
+innkeeper unless `AiPlayerbot.SummonAtInnkeepersEnabled = 0` in `aiplayerbot.conf`. There is no rest
+verb; a stopped companion eats and drinks by itself when low. `/all free` still lifts every leash.
+
+**Roam** lets them wander within 15 yards of you and come back when they stray (`"roam_leash"` in
+`narrator.json`). **Errands** lets them sell, buy, repair and train around you within 80 yards
+(`"errands_leash"`), and keeps that up until you press Follow. For training to actually buy spells,
+set `AiPlayerbot.AutoTrainSpells = yes` in `aiplayerbot.conf`. Weapon types at a weapon master are not
+learned yet. The lit button is the mode you are in.
+
+**What they are doing** shows under the status line, one entry per companion: `Felindy · selling to
+Godric Rothgar · 22 yd`. It needs this round's module rebuild; without it the line stays empty and
+the buttons still work.
 
 **Camp** — the button at the end of the row (or `/camp`, `/camp 20` for twenty minutes). The companions
 stop, sit in a ring around you and talk among themselves, from their own memories; you can join in.
