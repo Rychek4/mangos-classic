@@ -265,18 +265,39 @@ python -m narrator story reset                     # forget what was played
 ```
 `STORY_BIBLE.md` is the file format.
 
-## The agent's character (Isaac), for now a brief
+## Briefs: who the companions are
+
+One brief per companion, the same round trip for each. Ansel's was the first;
+the rest of the party works the same way, by name.
 
 ```powershell
 cd C:\wow\Azeroth_Narrator
-python -m narrator isaac brief                     # writes isaac-brief.md (server optional; better with it up)
-python -m narrator isaac load ansel.json           # strict; names every problem
-python -m narrator isaac show                      # wants, with [now] and [done]
-python -m narrator isaac reset                     # forget which wants were done
+python -m narrator isaac brief Wenna               # writes wenna-brief.md (server up is better: it sees the party)
+python -m narrator isaac load wenna.json           # strict; names every problem; rewrites her profile from it
+python -m narrator isaac load wenna.json --fresh   # and forgets what she has from play
+python -m narrator isaac show                      # every loaded brief, with [now] and [done]
+python -m narrator isaac show Wenna
+python -m narrator isaac reset Wenna               # forget which of her wants were done
+python -m narrator isaac unload Wenna              # no longer driven from a brief
 ```
-Hand `isaac-brief.md` to Isaac, save what comes back as a .json file, load it.
-Needs `"isaac_character": "Ansel"` in the config; from the next `narrator run`
-Ansel is driven from the brief. `ISAAC_BRIEF.md` is the file format.
+`narrator isaac brief` with no name is Ansel's (the `isaac_character` in the config).
+
+**The round trip, per companion:** run `brief <name>`, paste the `.md` into the frontier model, talk it
+through until the character is what you want, save the JSON it answers with as `<name>.json`, `load`
+it. The brief's `name` says who it is for, so load takes no name. `ISAAC_BRIEF.md` is the file format;
+the `.md` carries it, so the model has everything.
+
+**What is in the brief for a companion who has already played:** the local model made up a
+personality and three core memories the first time they joined; the brief shows them under *What the
+local model made up for them so far*, so you can keep what is worth keeping and drop the rest. You do
+not need to pull anything from the database first.
+
+**What load overwrites, and what it keeps.** Load rewrites the character's profile at once:
+presence, voice and the rules become the personality, the brief's memories the core memories; the
+old ones are gone. What the character has from play stays: recent memories, relationships, and the
+conversation log. At low level that is a handful of lines, and load says how many
+(`Kept from play: 3 memories, 12 conversations, 2 relationships`). Add `--fresh` to forget those too and
+start the character clean. Either way the briefed companions are driven from the next `narrator run`.
 
 ## Characters made to order
 
