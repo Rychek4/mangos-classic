@@ -326,11 +326,12 @@ start the character clean. Either way the briefed companions are driven from the
 The innkeeper, the guard at the gate, the questgiver with work for you: an NPC you come up to may
 say one thing to you, in a voice that fits its job, from facts the game supplies. It turns to face
 you first, gestures, and the bubble appears over its head in the client. This needs the module
-rebuilt (it adds `npc.about` and `npc.face`), and one line in `aiplayerbot.conf` so the module's own
-NPC chatter does not talk over it:
+rebuilt (it adds `npc.about` and `npc.face`). One thing to check: the module's old LLM hook, if it is
+still on, makes bots and NPCs small-talk through the module's own endpoint, and that would talk over
+the narrator's lines for the same NPC. It is off by default; make sure it stayed that way:
 
-```
-AiPlayerbot.LLMEnabled = 0
+```powershell
+Select-String LLMEnabled C:\wow\server\aiplayerbot.conf     # nothing, or a # line, or = 0 is fine; = 1 or = 2 set to 0
 ```
 
 **How often.** One aside every 90 seconds at most, whoever speaks; the same NPC not again for half an
