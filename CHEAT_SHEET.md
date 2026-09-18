@@ -141,11 +141,14 @@ narrator-ui --overlay-only
 narrator-ui --console-only
 narrator-ui --scale 1.5                          # 1.5 times the original strip, text with it (remembered)
 narrator-ui --scale 2 --font 18 --opacity 0.9    # twice, a chosen text size, a little see-through
+narrator-ui --height 1.5                         # how much taller than the strip's proportions (default 2; remembered)
 ```
 The overlay is 1.75 times its original size by default, text included, and opaque, made to sit over
 the game's own chat frame. Drag it there once; the position is remembered. `--scale` sizes the
 window and the text together, `--font` sets the text size in points on its own (`--font 0` goes
-back to scaled), and the last value you passed for each is remembered until you pass another.
+back to scaled), `--height` makes the box taller without touching the text (2 by default: twice
+the strip's proportions, so the lines keep their room under the activity rows and the buttons),
+and the last value you passed for each is remembered until you pass another.
 
 **The X on the console window only hides the console.** The overlay keeps running over the game; that is deliberate.
 
@@ -168,10 +171,12 @@ takes its current mode; it starts in Near (`"default_mode"`, `"near_leash"`, `"f
 `AiPlayerbot.AutoTrainSpells = yes` in `aiplayerbot.conf`. Weapon types at a weapon master are not
 learned yet. The lit button is the mode you are in.
 
-**What they are doing** shows under the status line, a row per companion: **Felindy** selling to
-Godric Rothgar · 22 yd. In a fight it says what they are actually doing: casting Smite, closing in,
-on your target, pulling, buffing the party with Power Word: Fortitude. It needs the module rebuilt at
-least once since this landed; without it the rows stay empty and the buttons still work.
+**What they are doing** shows under the status line as a small table, one row for every companion
+whether or not there is a word on them yet: the name in its own column, what they are doing next to
+it, the distance lined up on the right (`Felindy   selling to Godric Rothgar   22 yd`; `no word yet`
+until the module reports). In a fight it says what they are actually doing: casting Smite, closing
+in, on your target, pulling, buffing the party with Power Word: Fortitude. It needs the module
+rebuilt at least once since this landed; without it the rows say `no word yet` and the buttons still work.
 
 **Camp** — the button at the end of the row (or `/camp`, `/camp 20` for twenty minutes). The companions
 stop, sit in a ring around you and talk among themselves, from their own memories; you can join in.
@@ -184,9 +189,10 @@ following does. Turn it off with `"quest_tell": false` in `narrator.json`. Stran
 also mention work nearby that you could take up, in their own words (needs this round's rebuild).
 
 **The scene box.** When a scene begins, a second box slides out above the chat box with that scene's
-conversation, the premise as its title and where to look under it. After the strangers have gone it
+conversation, the premise as its title and the cast under it. After the strangers have gone it
 counts down 45 seconds and slides back behind the chat box. **Pin** keeps it up to read later, **×**
-puts it away now. `narrator-ui --scene-hold 90` changes the countdown.
+puts it away now. `narrator-ui --scene-hold 90` changes the countdown. It takes a little over half
+the chat box's height, or what fits above it on the screen when that is less.
 
 **Enter hands the keyboard back to the game.** Type, press Enter, and the next keypress moves your
 character. The buttons and Escape do the same. If your client's window is not titled
@@ -213,7 +219,8 @@ one group line).
 /add [Name]        a companion joins you (blank picks one) /remove Name  a companion goes home
 /all command       one playerbots command to every companion (follow, stay, attack, flee, summon, free)
 /suggest           who is worth adding
-/summon Name       bring a roster character to you       /dismiss    send the cast home
+/summon Name       bring a roster character to you; someone already in your party is told to come to you instead
+/dismiss           send the cast home
 /cast Name text    put words in a cast member's mouth
 /camp [minutes]    make camp; /break ends it
 /pause  /resume    the director
