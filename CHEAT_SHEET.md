@@ -171,6 +171,13 @@ takes its current mode; it starts in Near (`"default_mode"`, `"near_leash"`, `"f
 `AiPlayerbot.AutoTrainSpells = yes` in `aiplayerbot.conf`. Weapon types at a weapon master are not
 learned yet. The lit button is the mode you are in.
 
+**A companion fighting far away is called back.** A fleeing wolf can drag a companion off, and the
+next thing that aggroes keeps them there; the leash only pulls between fights. One reported fighting
+more than 100 yards from you is told `flee` (the module's break off and run to you), once every
+45 seconds (`"callback_distance"`, `"callback_gap"` in `narrator.json`; 0 turns it off). The log
+says `Polai is fighting 300 yd off; told to break off and come back`. A fight that far off no longer
+holds scenes back either: only your own, or a companion's within 60 yards (`"scene_fight_radius"`).
+
 **What they are doing** shows under the status line as a small table, one row for every companion
 whether or not there is a word on them yet: the name in its own column, what they are doing next to
 it, the distance lined up on the right (`Felindy   selling to Godric Rothgar   22 yd`; `no word yet`
