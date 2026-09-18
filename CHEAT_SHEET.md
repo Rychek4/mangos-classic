@@ -267,6 +267,13 @@ left are filled by logging someone in from the roster, and a recurring stranger 
 name is still fetched. If a borrowed bot cannot get to you in 20 seconds it is put on its spot
 anyway. `"scene_borrow": false` in `narrator.json` goes back to fetching everyone.
 
+**If nothing plays at all,** the log now says why. `story:quiet no scene on this encounter: ...` and
+`npc:quiet nobody speaks up: ...` name the reason once, each time it changes. The usual ones:
+`the party is mid-conversation` (a companion asked you something in the last 30 seconds, or two of
+them are talking), `combat`, `too soon after the last scene`, `the player is moving`, `this place has
+had its share`. If you see the same reason for a whole session, that is the thing to send me.
+`"busy_grace": 30` in `narrator.json` is how long an unanswered question keeps the world quiet.
+
 **If you still cannot see them,** the log will say why. `placed 74 yards below Bale` means the
 module is older than the height fix (rebuild it; see *Pulling new code*). No such line and no stranger
 in front of you: send the log.
