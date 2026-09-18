@@ -313,6 +313,34 @@ conversation log. At low level that is a handful of lines, and load says how man
 (`Kept from play: 3 memories, 12 conversations, 2 relationships`). Add `--fresh` to forget those too and
 start the character clean. Either way the briefed companions are driven from the next `narrator run`.
 
+## NPCs speak up
+
+The innkeeper, the guard at the gate, the questgiver with work for you: an NPC you come up to may
+say one thing to you, in a voice that fits its job, from facts the game supplies. It turns to face
+you first, gestures, and the bubble appears over its head in the client. This needs the module
+rebuilt (it adds `npc.about` and `npc.face`), and one line in `aiplayerbot.conf` so the module's own
+NPC chatter does not talk over it:
+
+```
+AiPlayerbot.LLMEnabled = 0
+```
+
+**How often.** One aside every 90 seconds at most, whoever speaks; the same NPC not again for half an
+hour; never in a fight near you, never over a scene or a conversation; an NPC with no service and no
+quest only one time in four. It speaks when you stop within 10 yards of it, or pass within 5 (a guard
+at a gate). In `narrator.json`: `"npc_asides": true`, `"npc_gap": 90`, `"npc_revisit": 1800`,
+`"npc_greet_radius": 10`, `"npc_pass_radius": 5`, `"npc_civilian_chance": 0.25`.
+
+**In the log** each one is a line like
+`npc:aside  Innkeeper Farley to Bale: Mind the step.  [npc Innkeeper Farley, role innkeeper, moment stopped, hook quest_offer, gesture wave]`
+followed by the `chat [monster_say]` line as the world heard it. `role` is what the game said it
+is; `hook` is the facts the line hung on. If the module is old, the log says
+`the module does not know npc.about` and the NPC still speaks, from less.
+
+**What to watch for, this first time:** too many, too few, the wrong ones (a vendor when the
+questgiver was right there), lines that ignore the hook, and the bubble on the wrong head. All five
+are numbers or facts I can tune from the log.
+
 ## Characters made to order
 
 Isaac's body and the recurring cast are created, not picked from the pool.
