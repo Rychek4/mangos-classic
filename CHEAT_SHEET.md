@@ -268,11 +268,14 @@ name is still fetched. If a borrowed bot cannot get to you in 20 seconds it is p
 anyway. `"scene_borrow": false` in `narrator.json` goes back to fetching everyone.
 
 **If nothing plays at all,** the log now says why. `story:quiet no scene on this encounter: ...` and
-`npc:quiet nobody speaks up: ...` name the reason once, each time it changes. The usual ones:
-`the party is mid-conversation` (a companion asked you something in the last 30 seconds, or two of
-them are talking), `combat`, `too soon after the last scene`, `the player is moving`, `this place has
-had its share`. If you see the same reason for a whole session, that is the thing to send me.
-`"busy_grace": 30` in `narrator.json` is how long an unanswered question keeps the world quiet.
+`npc:quiet nobody speaks up: ...` name the reason once, each time it changes. The whole list:
+`combat`, `the player is moving`, `the player has only just arrived`, `too soon after the last scene`,
+`this place has had its share`, `a scene is playing`, `nobody is here`, `paused`. If you see the same
+reason for a whole session, that is the thing to send me.
+
+**Strangers and NPCs will interrupt you**, on purpose. Somebody walking up while a companion is
+mid-sentence is how a tavern sounds, and lines never land on top of each other because everyone
+speaks from one clock. Nothing is held back because the party is talking.
 
 **If you still cannot see them,** the log will say why. `placed 74 yards below Bale` means the
 module is older than the height fix (rebuild it; see *Pulling new code*). No such line and no stranger
