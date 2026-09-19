@@ -232,6 +232,15 @@ leaves the game's keys alone; `--hotkey enter` puts it back. The key is remember
 If the game's chat frame still opens when you press Enter, the client is reading the keyboard in a
 way the hook cannot intercept: pick a key the game does not use, such as `--hotkey f12`.
 
+**Your companions have never once spoken first — and now can.** Every companion line in every
+session so far was an answer to you; the director's own triggers (zone banter, class banter, two
+companions talking, one turning to you) had fired zero times. They waited for five minutes of total
+silence — no line, no fight, no zone, no quest — and then still refused if any companion had asked you
+anything in the last five minutes, or if anyone in the party was fighting anywhere. The last two are
+gone; the wait is on the `pace` dial (2½ minutes at 2.0). **To see it:** stand still, stop typing,
+stay out of fights for 2½ minutes. The sauce window's `banter cooling: …` line then shows which
+clocks are running. **Needs no rebuild.**
+
 **Companions do not join passing bots' guilds.** A random bot walks up, asks, and the companion used
 to answer "Sounds good, sign me up!" and join. The module tries not to recruit someone's alt but makes
 an exception for random bots, and every companion here is a random bot with a master put on it, so the
@@ -307,7 +316,9 @@ place for 15 seconds, so you are there to see it. Scene lines show in the overla
 **If it feels too quiet (or too busy), turn one dial.** `"pace"` in `narrator.json` is how often the
 world speaks up: `1.0` is the numbers as written, `2.0` twice as often, `0.5` half. It shortens every
 wait between things at once — scenes, NPC asides, how soon the same NPC may speak to you again, how
-soon a recurring stranger may come back — and leaves alone everything about whether you *see* a thing:
+soon a recurring stranger may come back, how long the companions wait in silence before one of them
+speaks up on their own, and how long after that before they may again — and leaves alone everything
+about whether you *see* a thing:
 how long a walk takes, how long people stand there, how long you must be still. It ships at **2.0**
 for testing. There is no need to edit the individual gaps; move the dial, play, and move it again.
 
