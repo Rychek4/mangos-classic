@@ -259,16 +259,18 @@ mid-conversation and keeps going. In a town most scenes are overheard; on the ro
 They stand 12 seconds after their last line, then walk off for 20 seconds before they log out. The
 log says `story:gone Name is gone` when they have. Companions remember the scenes they stood through.
 
-**Who the strangers are.** Logged in from the server's random-bot roster, placed, and logged out
-again at the end.
+**Who the strangers are.** A bot already wandering within 40 yards of you (one of the server's random
+bots with nobody to follow, of your faction, not fighting) is borrowed first: it walks over, plays
+the part, and afterwards goes back to its own business rather than logging out. The scene line says
+`borrowed Marla` and the end says `Marla goes back to their own business`. Only the places left over
+are filled by logging someone in from the roster, and a recurring stranger the scene wants by name is
+still fetched. If a borrowed bot cannot reach you in 20 seconds it is put on its spot anyway.
 
-**Borrowing is off for now.** A bot already wandering near you can play the part instead: it walks
-over, says its lines, and afterwards goes back to its own business rather than logging out. That is
-built but turned off while the NPC asides are being watched, so only one new thing is in play at a
-time. `"scene_borrow": true` in `narrator.json` turns it on; `"scene_borrow_level_spread": 15` is how
-far off your level a borrowed stranger may be, wider than the 5 used when fetching because you get
-whoever is standing there. With it on the scene line says `borrowed Marla` and the end says
-`Marla goes back to their own business`.
+**Level does not exclude anyone from being borrowed.** A level 60 bot standing in Stormwind can have
+a conversation near your level 5 party; it only matters to someone reading the nameplate, and the
+alternative was that nothing was ever borrowed in a city. `"scene_borrow_level_spread": 15` in
+`narrator.json` puts a window back if you want one (0, the default, means no limit), and
+`"scene_borrow": false` goes back to fetching everyone.
 
 **If nothing plays at all,** the log now says why. `story:quiet no scene on this encounter: ...` and
 `npc:quiet nobody speaks up: ...` name the reason once, each time it changes. The whole list:
