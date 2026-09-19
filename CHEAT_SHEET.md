@@ -252,6 +252,17 @@ and waits at least 2 minutes between scenes (`scene_min_gap`), on top of arrival
 waits until you have stood still for 8 seconds, and an arrival scene until you have been in the new
 place for 15 seconds, so you are there to see it. Scene lines show in the overlay in a lavender colour.
 
+**If it feels too quiet (or too busy), turn one dial.** `"pace"` in `narrator.json` is how often the
+world speaks up: `1.0` is the numbers as written, `2.0` twice as often, `0.5` half. It shortens every
+wait between things at once — scenes, NPC asides, how soon the same NPC may speak to you again, how
+soon a recurring stranger may come back — and leaves alone everything about whether you *see* a thing:
+how long a walk takes, how long people stand there, how long you must be still. It ships at **2.0**
+for testing. There is no need to edit the individual gaps; move the dial, play, and move it again.
+
+**Nowhere runs out of scenes.** One place may host 8 scenes (`scene_max_per_area`) in any two hours
+(`scene_area_memory`, also on the dial), then goes quiet for a while and comes back. If the log keeps
+saying `this place has had its share` in the town you play in most, raise `pace` or `scene_max_per_area`.
+
 **When the overlay glows,** the caption says where to look. Three shapes: someone appears about
 9 yards in front of you and walks up (sometimes two of them); two or three people stand off to one
 side talking to each other and you overhear them (they never come over); or a pair comes past you
@@ -350,8 +361,8 @@ Select-String LLMEnabled C:\wow\server\aiplayerbot.conf     # nothing, or a # li
 ```
 
 **How often.** One aside every 90 seconds at most, whoever speaks; the same NPC not again for half an
-hour; never in a fight near you, never over a scene or a conversation; an NPC with no service and no
-quest only one time in four. It speaks when you stop within 10 yards of it, or pass within 5 (a guard
+hour (both divided by `pace`, so 45 seconds and a quarter hour at the shipped 2.0); never in a fight
+near you, never over a scene or a conversation; an NPC with no service and no quest only one time in four. It speaks when you stop within 10 yards of it, or pass within 5 (a guard
 at a gate). In `narrator.json`: `"npc_asides": true`, `"npc_gap": 90`, `"npc_revisit": 1800`,
 `"npc_greet_radius": 10`, `"npc_pass_radius": 5`, `"npc_civilian_chance": 0.25`.
 
