@@ -259,9 +259,12 @@ soon a recurring stranger may come back — and leaves alone everything about wh
 how long a walk takes, how long people stand there, how long you must be still. It ships at **2.0**
 for testing. There is no need to edit the individual gaps; move the dial, play, and move it again.
 
-**Nowhere runs out of scenes.** One place may host 8 scenes (`scene_max_per_area`) in any two hours
-(`scene_area_memory`, also on the dial), then goes quiet for a while and comes back. If the log keeps
-saying `this place has had its share` in the town you play in most, raise `pace` or `scene_max_per_area`.
+**Nowhere runs out of scenes.** There is a limit on how many scenes one place may host in a while
+(`scene_max_per_area` over `scene_area_memory`), so that standing in one square all evening does not
+make that square the only theatre in the world. **It is off for testing** (`"scene_max_per_area": 0`
+is no limit). Set it to 8 to turn it back on. A "place" is the subzone — Goldshire, the Trade
+District, Valley of Heroes — not the whole zone. If you ever see `this place has had its share` in
+the log, that is this rule, and 0 switches it off.
 
 **When the overlay glows,** the caption says where to look. Three shapes: someone appears about
 9 yards in front of you and walks up (sometimes two of them); two or three people stand off to one
