@@ -171,6 +171,15 @@ takes its current mode; it starts in Near (`"default_mode"`, `"near_leash"`, `"f
 `AiPlayerbot.AutoTrainSpells = yes` in `aiplayerbot.conf`. Weapon types at a weapon master are not
 learned yet. The lit button is the mode you are in, and it lights the moment you press it.
 
+**If Errands looked broken — stepping, freezing, floating, drifting back to you — that was a real
+bug and it is fixed.** The leash has an inner band inside which the module stops pulling a companion
+back, and it used to be a third of the leash: 27 yards on Errands, most of a town square. Inside that
+band the module's "stop follow" outranks the sell/repair/train actions about two ticks in three, so
+the companions were told to stop roughly twice as often as they were told to work, and never got
+close enough to a vendor to finish anything. The band is now a small fixed 5 yards (`"wander_inner"`
+in `narrator.json`), so they are out in the open band where the errand wins every tick. **Needs no
+rebuild** — restart the narrator and press Errands again.
+
 **Errands does more than shopping.** It sends the module's `+rpg`, and that is eight behaviours at
 once, not one: sell and buy, repair and train, **take and turn in quests from anyone they walk past**,
 both sides of the auction house, collect mail, use the bank, discover flight points, bind at an inn,
