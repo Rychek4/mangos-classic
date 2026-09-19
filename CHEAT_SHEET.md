@@ -232,6 +232,24 @@ leaves the game's keys alone; `--hotkey enter` puts it back. The key is remember
 If the game's chat frame still opens when you press Enter, the client is reading the keyboard in a
 way the hook cannot intercept: pick a key the game does not use, such as `--hotkey f12`.
 
+**Things that happen to you now show up, and can be remarked on.** A level gained, a death, a quest
+you accepted or turned in, crossing into a new zone, a companion joining: the overlay shows each one
+in grey in the chat box, whether or not anyone comments — and a companion may say something about it,
+picked from the ones it did *not* happen to, so your level is for the others to notice. They may also
+say nothing; not every level deserves a remark.
+
+This used to be the worst of both. Those events were the *only* thing that reset the timer the
+companions wait on before speaking up, so they bought silence — and the overlay showed none of them,
+so nothing was put in their place. One setting, `"moment_gap"` (30 s, on the `pace` dial, so 15 s at
+2.0), spaces the reactions out. A companion accepting a quest is deliberately not one of these (all
+four do it at once when you do, and that is machinery, not news), nor is a subzone border — a city is
+all subzones. **Needs no rebuild.**
+
+If the reactions ever feel like they are making *your* answers slow: one local model answers one
+request at a time, so a companion mid-remark delays your own reply by up to one generation. Your
+line still jumps the queue ahead of anything merely waiting — only a reaction already in flight can
+hold it up. `"enable_moments": false` turns the remarks off and keeps the grey announcements.
+
 **Your companions have never once spoken first — and now can.** Every companion line in every
 session so far was an answer to you; the director's own triggers (zone banter, class banter, two
 companions talking, one turning to you) had fired zero times. They waited for five minutes of total
