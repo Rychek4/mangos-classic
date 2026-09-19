@@ -251,6 +251,19 @@ and long replies come in sentence-sized beats. In `narrator.json`: `"speech_char
 `"speech_floor": 1.5`, `"speech_cap": 9` (seconds), `"group_answers": 2` (how many companions answer
 one group line).
 
+**For streaming: the sauce.** `narrator-ui --sauce` opens a third window up the right-hand side
+(drag it anywhere; it remembers) that shows how the sauce is made — what each system is doing and
+why. The top few lines are live: what the storyteller is doing right now and, if it is holding back,
+the exact reason (`waiting: too soon after the last scene`); whether an NPC may speak up; the party's
+mode and how long it has been quiet; the model's queue and last timing; who is in the cast and whether
+they were borrowed from nearby or logged in. Below that scrolls the decision feed: every refusal with
+its reason, every opening, `Engonn, Urnund borrowed from nearby; walking over` (the forty seconds when
+nothing seems to be happening), every NPC aside with the role, moment and hooks it was built from,
+every model call with its time. Colour says whose decision it was: lavender story, teal NPCs, amber
+companions, grey model. Spoken lines are not in it — the chat box has those. `--no-sauce` puts it
+away; so does the × on it or the chat box's right-click menu, which also brings it back. It takes the
+chat box's `--scale`, `--font` and `--opacity`.
+
 **Type in the overlay** — plain text is said by your character.
 
 **The box stays in the channel you last used.** Type `/p something` and the next plain line goes to
