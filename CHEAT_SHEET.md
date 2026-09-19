@@ -164,12 +164,21 @@ leash.
 
 **Follow** is the formation, for a road march or a dungeon. **Near** lets them wander within 15 yards
 of you (free inside 5, drifting back between, running back beyond), for towns and careful ground.
-**Far** is the same within 25 yards, for open roads. **Errands** lets them sell, buy, repair and train
-around you within 80 yards and keeps that up until you press another button. Whoever joins the party
+**Far** is the same within 25 yards, for open roads. **Errands** lets them get on with their own
+life within 80 yards and keeps that up until you press another button. Whoever joins the party
 takes its current mode; it starts in Near (`"default_mode"`, `"near_leash"`, `"far_leash"`,
 `"errands_leash"` in `narrator.json`). For training to actually buy spells, set
 `AiPlayerbot.AutoTrainSpells = yes` in `aiplayerbot.conf`. Weapon types at a weapon master are not
-learned yet. The lit button is the mode you are in.
+learned yet. The lit button is the mode you are in, and it lights the moment you press it.
+
+**Errands does more than shopping.** It sends the module's `+rpg`, and that is eight behaviours at
+once, not one: sell and buy, repair and train, **take and turn in quests from anyone they walk past**,
+both sides of the auction house, collect mail, use the bank, discover flight points, bind at an inn,
+and buy a guild charter. The quest-taking is the one worth knowing about — it is why a quest can turn
+up in the log that you did not accept. Companions will *not* fly off or queue for a battleground: the
+module already refuses both to a bot that has a master. To make the button mean only shopping and
+upkeep, set `"errand_strategies": "+rpg vendor,+rpg maintenance"` in `narrator.json` — though they
+will do less wandering-to-a-target, since that part lives in `rpg` itself.
 
 **A companion fighting far away is called back.** A fleeing wolf can drag a companion off, and the
 next thing that aggroes keeps them there; the leash only pulls between fights. One reported fighting
@@ -213,6 +222,15 @@ To use a different key, `narrator-ui --hotkey ctrl+enter` (or `f12`, `shift+grav
 leaves the game's keys alone; `--hotkey enter` puts it back. The key is remembered like `--scale`.
 If the game's chat frame still opens when you press Enter, the client is reading the keyboard in a
 way the hook cannot intercept: pick a key the game does not use, such as `--hotkey f12`.
+
+**Companions do not join passing bots' guilds.** A random bot walks up, asks, and the companion used
+to answer "Sounds good, sign me up!" and join. The module tries not to recruit someone's alt but makes
+an exception for random bots, and every companion here is a random bot with a master put on it, so the
+exception cancelled the protection. A companion now refuses a guild invite and a guild charter from
+another bot, silently. An invite from a human still works, so you can take your own companions into
+your own guild. **This one needs a rebuild of the module.** Without rebuilding,
+`AiPlayerbot.RandomBotGuildNearby = 0` in `aiplayerbot.conf` stops every random bot from recruiting
+anyone nearby, which also works but is blunter.
 
 **NPC text reads properly now.** The server sends creature and gossip text with the client's
 placeholders still in it (`$N` your name, `$C` class, `$R` race, `$G he:she;`), and the game's speech
