@@ -214,14 +214,26 @@ leaves the game's keys alone; `--hotkey enter` puts it back. The key is remember
 If the game's chat frame still opens when you press Enter, the client is reading the keyboard in a
 way the hook cannot intercept: pick a key the game does not use, such as `--hotkey f12`.
 
+**NPC text reads properly now.** The server sends creature and gossip text with the client's
+placeholders still in it (`$N` your name, `$C` class, `$R` race, `$G he:she;`), and the game's speech
+bubble fills them while the overlay used to show them raw — a guard hailing you read `$N, eh? Oy!
+Citizen $N, come 'ere.` in the chat box. The overlay fills them the same way the client does.
+
 **Pacing.** Everyone speaks from one clock: a line stays up for its reading time before the next,
 and long replies come in sentence-sized beats. In `narrator.json`: `"speech_chars_per_second": 15`,
 `"speech_floor": 1.5`, `"speech_cap": 9` (seconds), `"group_answers": 2` (how many companions answer
 one group line).
 
 **Type in the overlay** — plain text is said by your character.
+
+**The box stays in the channel you last used.** Type `/p something` and the next plain line goes to
+party too, until you pick another channel with `/s`, `/y`, `/ra` or `/g`. The grey hint text in the
+box says which one you are in (`[Party] say something ...`). Two do not stick on purpose: `/e`
+(an emote is a turn of phrase, not somewhere to talk from) and `/w` (so a later line is never
+privately addressed to someone without the box saying so).
 ```
-/p text            party         /y text      yell        /e text     emote
+/s text            say           /p text      party       /y text     yell
+/e text            emote         /ra text     raid        /g text     guild
 /w Name text       whisper
 /add [Name]        a companion joins you (blank picks one) /remove Name  a companion goes home
 /all command       one playerbots command to every companion (follow, stay, attack, flee, summon, free)
