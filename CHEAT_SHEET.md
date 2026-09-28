@@ -338,10 +338,12 @@ privately addressed to someone without the box saying so).
 /dismiss           send the cast home
 /cast Name text    put words in a cast member's mouth
 /camp [minutes]    make camp; /break ends it
-/pause  /resume    companions stop and start answering you (the narrator keeps looking)
 /weather rain 0.8  zone weather
 /bot Name follow   a playerbots command to one companion
 ```
+
+`/pause` and `/resume` are gone, with the console's Pause button: the game server cannot be paused,
+so a pause only stopped the companions answering while the world went on.
 
 **Stop** — right-click the overlay → Quit.
 
@@ -387,8 +389,9 @@ standing about can still walk over, and a story beat's figure can still arrive. 
 
 The shapes are the narrator's choice: someone walks up to you, two people talk to each other off to
 one side and you overhear, a pair passes mid-conversation, or nobody moves and the people already
-here speak. The shape places strangers logged in from the roster; a bot borrowed from nearby walks
-over to you whatever the shape, so a borrowed pair talking to each other ends up beside you.
+here speak. Each stranger goes to their spot in the shape: logged in on it from the roster, or
+walking to it if borrowed from nearby, so a borrowed pair talking to each other stops off to one side
+rather than beside you. In a pair, whoever speaks turns to the other.
 
 **Level does not exclude anyone from being borrowed.** A level 60 bot standing in Stormwind can have
 a conversation near your level 5 party; it only matters to someone reading the nameplate, and the
@@ -433,8 +436,8 @@ a figure bound to a roster character arrives as a stranger with the beat's gist,
 one of your companions raises it themselves. A beat that plays is spent and the companions remember
 what it revealed; its thread then rests until the party has walked 1,500 yards (`"story_rest_yards"`).
 The people who live in the bible's zones grumble about its premise like any other local trouble. A
-beat's moment shows in the log as a `narrator:took` line like any other, and `narrator story show`
-marks which beats have played.
+beat's moment shows in the log as a `narrator:took` line like any other, followed by
+`narrator:story played '<beat>' (<thread>)`, and `narrator story show` marks which beats have played.
 
 ## Briefs: who the companions are
 
@@ -474,9 +477,9 @@ start the character clean. Either way the briefed companions are driven from the
 
 The innkeeper, the guard at the gate, the farmer with work for you: walk within 25 yards
 (`"here_yards"`) and they are on the narrator's menu, and whoever you walk up to is usually the next
-moment. They speak where they stand, with a gesture now and then, and the bubble appears over their
-head in the client. What they say is hung on facts the game supplies, one topic at a time, each spent
-by saying it:
+moment. They turn to face you, gesture now and then, and the bubble appears over their head in the
+client; once you walk on (out of those 25 yards) they turn back the way they stood. What they say is
+hung on facts the game supplies, one topic at a time, each spent by saying it:
 
 1. a vendor's wares, for somebody whose job is selling or repairing (an innkeeper who also sells is
    an innkeeper first)
@@ -505,8 +508,6 @@ npc.about` and the person still speaks, from less.
 
 **What to watch for:** the wrong person chosen (a vendor when the questgiver was right there), the
 same thing said twice, lines that ignore what they were holding, and the bubble on the wrong head.
-Nobody turns a resident toward you any more (that went with the old asides), so somebody facing
-away while they talk to you is expected for now; say if it reads badly.
 
 ## Voices
 
@@ -641,8 +642,10 @@ cmake --install build --config Release
 powershell -ExecutionPolicy Bypass -File setup\Update-Databases.ps1
 powershell -ExecutionPolicy Bypass -File setup\Test-Setup.ps1
 ```
-The latest module changes that need the rebuild: NPCs report their gender, so voices match them
-(28 September; without it an NPC's voice comes from either pool), and quest leads carry the quest's
+The latest module changes that need the rebuild: `bot.place` can walk a bot to its spot, so a
+stranger borrowed from nearby walks to its place in the scene (28 September; without it they are put
+there instead), and NPCs report their gender, so voices match them (28 September; without it an NPC's
+voice comes from either pool), and quest leads carry the quest's
 own text, so a questgiver raises their work in its own words (22 September; without it they know
 only the title). Earlier rounds brought strangers placed on the ground instead of under it, no
 re-roll of Ansel or a stranger at login, `bot.face` so two strangers talking to each other look at
