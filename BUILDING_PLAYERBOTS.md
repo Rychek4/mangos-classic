@@ -101,13 +101,14 @@ Test-Path C:\local\boost_1_87_0\lib64-msvc-14.3\cmake\Boost-1.87.0\BoostConfig.c
 git --version; cmake --version; $env:BOOST_ROOT
 ```
 
-3. The three repositories as siblings, on the working branch:
+3. The three repositories as siblings, on their default branches (`master`, `master`, `main`),
+   which is where finished work is merged:
 
 ```powershell
 mkdir C:\wow; cd C:\wow
-git clone -b claude/documentation-review-s056qd https://github.com/Rychek4/mangos-classic.git
-git clone -b claude/documentation-review-s056qd https://github.com/Rychek4/playerbots.git
-git clone -b claude/documentation-review-s056qd https://github.com/Rychek4/Azeroth_Narrator.git
+git clone https://github.com/Rychek4/mangos-classic.git
+git clone https://github.com/Rychek4/playerbots.git
+git clone https://github.com/Rychek4/Azeroth_Narrator.git
 ```
 
 4. Configure, build, install (the first build is the long one):

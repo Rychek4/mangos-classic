@@ -9,7 +9,7 @@ Start from the bottom up. Stop from the top down.
 
 ```
   narrator-ui        overlay + console windows            8891 (UI socket)
-  narrator run       the director, in a terminal
+  narrator run       the narrator, in a terminal
   llama.cpp          the local model                      8080
   game client        WoW 1.12.1, borderless windowed
   mangosd            world server + playerbots + bridge   8085 / 8890 (bridge)
@@ -103,19 +103,19 @@ down, and "later" never comes: the process is exiting. Ignore it.
 Companions are put on the module's `silent` strategy when they join, so the
 party channel is them talking, not the module reporting what it equipped.
 
-**Stop** — log out normally. Ctrl-C the director first if a cast bot is standing near you, so it can be sent home.
+**Stop** — log out normally. Ctrl-C the narrator first if a moment is playing, so any stranger in it is sent home.
 
 ---
 
 ## llama.cpp
 
-However you normally run it, on port 8080. Start it before `narrator run`; the director needs it the first time a companion wants to speak.
+However you normally run it, on port 8080. Start it before `narrator run`; the narrator asks it for the first moment as soon as you are in the world.
 
 **Stop** — Ctrl-C.
 
 ---
 
-## narrator run (the director)
+## narrator run (the narrator)
 
 **Start** — its own window:
 ```powershell
@@ -129,6 +129,27 @@ python -m narrator run --llm openai:http://127.0.0.1:8080/v1 --record session.js
 **Stop** — **Ctrl-C, always.** It ends the session in the database (the "how long since we last spoke" clock depends on it) and sends home any cast bot still standing. Do this *before* shutting the server down, while the bridge is still up.
 
 `narrator` on its own launches the Windows screen reader; that is why it is `python -m narrator`. `azeroth-narrator` is the same program under a name Windows does not own.
+
+**If it will not start with `unknown config keys: [...]`,** your `narrator.json` names a setting that
+has been removed; delete those lines. The narrator refuses unknown keys rather than ignoring them, so
+a typo never silently does nothing. Removed since 20 September, when the clocks came out and one
+narrator took over deciding every moment:
+
+```
+enable_moments  moment_gap  unified_conversation_check_interval  global_min_gap
+zone_banter_cooldown  class_banter_cooldown  bot_to_player_cooldown  multi_turn_cooldown
+interjection_cooldown  interjection_subzone_stale_threshold  bot_conversation_turn_probabilities
+enable_banter_conversations  enable_class_banter_conversations  enable_zone_lore_conversations
+enable_multi_turn_conversations  enable_proactive_interjections  enable_bot_to_player_initiation
+enable_temporal_need_banter  temporal_need_cooldown_hours  temporal_need_speak_chance
+temporal_need_threshold_max_hours  enable_storyteller
+scene_interval  scene_min_gap  scene_max_per_area  scene_area_memory  scene_settle
+scene_arrival_delay  scene_pending_for  scene_shapes  scene_company  scene_third
+scene_borrow_arrive  scene_borrow_wait  scene_linger  scene_leave_seconds
+scene_line_gap_min  scene_line_gap_max
+npc_asides  npc_gap  npc_revisit  npc_passed_retry  npc_greet_radius  npc_pass_radius
+npc_civilian_chance  npc_face_seconds  npc_settle
+```
 
 ---
 
@@ -193,8 +214,9 @@ will do less wandering-to-a-target, since that part lives in `rpg` itself.
 next thing that aggroes keeps them there; the leash only pulls between fights. One reported fighting
 more than 100 yards from you is told `flee` (the module's break off and run to you), once every
 45 seconds (`"callback_distance"`, `"callback_gap"` in `narrator.json`; 0 turns it off). The log
-says `Polai is fighting 300 yd off; told to break off and come back`. A fight that far off no longer
-holds scenes back either: only your own, or a companion's within 60 yards (`"scene_fight_radius"`).
+says `Polai is fighting 300 yd off; told to break off and come back`. A fight that far off is not
+"a fight going on near them" on the narrator's page either: only your own, or a companion's within
+60 yards (`"scene_fight_radius"`), is.
 
 **What they are doing** shows under the status line as a small table, one row for every companion
 whether or not there is a word on them yet: the name in its own column, what they are doing next to
@@ -210,14 +232,20 @@ Press it again (or `/break`) and they stand and fall in behind you. Ten minutes 
 **Quests** — when you accept a quest, every companion is told `accept` and takes what that NPC offers
 them; when you turn one in, they are told `talk` and turn in what they have complete. The game's own
 rules decide who can (a companion behind on a chain stays behind). It needs them near you, which
-following does. Turn it off with `"quest_tell": false` in `narrator.json`. Strangers in scenes may
-also mention work nearby that you could take up, in their own words (needs this round's rebuild).
+following does. Turn it off with `"quest_tell": false` in `narrator.json`. Strangers may also
+mention work nearby that you could take up, in their own words, and a questgiver you walk up to
+raises their own quest from the quest's own text (both need the module rebuilt; without the
+22 September rebuild a questgiver knows only the quest's title).
 
-**The scene box.** When a scene begins, a second box slides out above the chat box with that scene's
-conversation, the premise as its title and the cast under it. After the strangers have gone it
-counts down 45 seconds and slides back behind the chat box. **Pin** keeps it up to read later, **×**
-puts it away now. `narrator-ui --scene-hold 90` changes the countdown. It takes a little over half
-the chat box's height, or what fits above it on the screen when that is less.
+**Each moment is named as it starts.** A line in the scene colour, `✦` and the moment's premise,
+shows above the chat box for six seconds. The border no longer flashes: every remark is a moment
+now, so it would be flashing most of the time.
+
+**The scene box is off by default.** `narrator-ui --scene-box` brings it back: a second box slides
+out above the chat box for each moment, the premise as its title and the cast under it, and after
+the moment ends it counts down 45 seconds and slides back. **Pin** keeps it up to read later, **×**
+puts it away now. `--scene-hold 90` changes the countdown. Without it, the chat box carries every
+line.
 
 **Enter hands the keyboard back to the game.** Type, press Enter, and the next keypress moves your
 character. The buttons and Escape do the same. If your client's window is not titled
@@ -232,32 +260,25 @@ leaves the game's keys alone; `--hotkey enter` puts it back. The key is remember
 If the game's chat frame still opens when you press Enter, the client is reading the keyboard in a
 way the hook cannot intercept: pick a key the game does not use, such as `--hotkey f12`.
 
-**Things that happen to you now show up, and can be remarked on.** A level gained, a death, a quest
+**Things that happen to you show up, and can be remarked on.** A level gained, a death, a quest
 you accepted or turned in, crossing into a new zone, a companion joining: the overlay shows each one
-in grey in the chat box, whether or not anyone comments — and a companion may say something about it,
-picked from the ones it did *not* happen to, so your level is for the others to notice. They may also
-say nothing; not every level deserves a remark.
+in grey in the chat box, whether or not anyone comments. Each also goes on the narrator's page as
+something that happened since it last looked, so when nobody else is about a companion may pick it
+up in the next moment, or may not; not every level deserves a remark. There is no setting for this
+any more: `"moment_gap"` and `"enable_moments"` are gone, and the narrator refuses to start with
+either in `narrator.json` (see *If it will not start*, under `narrator run`).
 
-This used to be the worst of both. Those events were the *only* thing that reset the timer the
-companions wait on before speaking up, so they bought silence — and the overlay showed none of them,
-so nothing was put in their place. One setting, `"moment_gap"` (30 s, on the `pace` dial, so 15 s at
-2.0), spaces the reactions out. A companion accepting a quest is deliberately not one of these (all
-four do it at once when you do, and that is machinery, not news), nor is a subzone border — a city is
-all subzones. **Needs no rebuild.**
+One local model answers one request at a time, so a moment being written when you speak delays your
+own reply by up to one generation. Your line still jumps the queue ahead of anything merely waiting.
 
-If the reactions ever feel like they are making *your* answers slow: one local model answers one
-request at a time, so a companion mid-remark delays your own reply by up to one generation. Your
-line still jumps the queue ahead of anything merely waiting — only a reaction already in flight can
-hold it up. `"enable_moments": false` turns the remarks off and keeps the grey announcements.
-
-**Your companions have never once spoken first — and now can.** Every companion line in every
-session so far was an answer to you; the director's own triggers (zone banter, class banter, two
-companions talking, one turning to you) had fired zero times. They waited for five minutes of total
-silence — no line, no fight, no zone, no quest — and then still refused if any companion had asked you
-anything in the last five minutes, or if anyone in the party was fighting anywhere. The last two are
-gone; the wait is on the `pace` dial (2½ minutes at 2.0). **To see it:** stand still, stop typing,
-stay out of fights for 2½ minutes. The sauce window's `banter cooling: …` line then shows which
-clocks are running. **Needs no rebuild.**
+**Companions speak first, when nobody else is about.** Nothing waits for a silence any more. When
+nobody who lives here and none of the server's wandering bots is within 25 yards of you
+(`"here_yards"`), the companions are the moment: one says something, another may answer, and they
+talk about the road, the place or what just happened. Then they are winded: the companions share about 20 seconds of talk before
+they need 45 seconds of quiet, and the log says `narrator:quiet nobody with the breath to speak: the
+party is catching its breath`. Walk up to somebody and whatever they were saying trails off, half
+said (`narrator:cut trails off: somebody is here`), and the person you walked up to is the next
+moment. **Needs no rebuild.**
 
 **Companions do not join passing bots' guilds.** A random bot walks up, asks, and the companion used
 to answer "Sounds good, sign me up!" and join. The module tries not to recruit someone's alt but makes
@@ -275,21 +296,28 @@ Citizen $N, come 'ere.` in the chat box. The overlay fills them the same way the
 
 **Pacing.** Everyone speaks from one clock: a line stays up for its reading time before the next,
 and long replies come in sentence-sized beats. In `narrator.json`: `"speech_chars_per_second": 15`,
-`"speech_floor": 1.5`, `"speech_cap": 9` (seconds), `"group_answers": 2` (how many companions answer
-one group line).
+`"speech_floor": 1.5`, `"speech_cap": 9` (seconds), `"group_answers": 1` (how many companions answer
+a line said to the group; naming somebody is not limited by it), and `"tempo": 1.0`, one multiplier
+over every pause inside a moment that is not speech (1.5 gives a moment half again as much room).
 
 **For streaming: the sauce.** `narrator-ui --sauce` opens a third window up the right-hand side
-(drag it anywhere; it remembers) that shows how the sauce is made — what each system is doing and
-why. The top few lines are live: what the storyteller is doing right now and, if it is holding back,
-the exact reason (`waiting: too soon after the last scene`); whether an NPC may speak up; the party's
-mode and how long it has been quiet; the model's queue and last timing; who is in the cast and whether
-they were borrowed from nearby or logged in. Below that scrolls the decision feed: every refusal with
-its reason, every opening, `Engonn, Urnund borrowed from nearby; walking over` (the forty seconds when
-nothing seems to be happening), every NPC aside with the role, moment and hooks it was built from,
-every model call with its time. Colour says whose decision it was: lavender story, teal NPCs, amber
-companions, grey model. Spoken lines are not in it — the chat box has those. `--no-sauce` puts it
-away; so does the × on it or the chat box's right-click menu, which also brings it back. It takes the
-chat box's `--scale`, `--font` and `--opacity`.
+(drag it anywhere; it remembers) that shows how the sauce is made. The top lines are live:
+
+- `scenes` — `looking`, or `playing:` and the moment's premise; under it, how long ago the last
+  moment was and how many looks the narrator has taken (`5 taken of 9 looks, 1 failed`)
+- `pace` — what the last moment cost (`4 pieces in 18 s`), the average so far, and the `tempo`
+- `residents` — who is on the narrator's menu, and who is catching their breath and for how long
+- `party` — the mode, how long it has been quiet, replies and silences
+- `model` — the queue and the last timing
+- `cast` — who is standing in a moment, and whether they were borrowed from nearby
+
+Below that scrolls the decision feed: every look the narrator took, with what it took and the
+premise (`narrator:took`), every quiet and failure with its reason, which situations were put on the
+page (`narrator:assembled`), who was borrowed or logged in, who went back to their own business, and
+every model call with its time. Colour says whose it was: lavender the stage, teal the people who
+live here, amber the companions, grey the narrator and the model. Spoken lines are not in it; the
+chat box has those. `--no-sauce` puts it away; so does the × on it or the chat box's right-click
+menu, which also brings it back. It takes the chat box's `--scale`, `--font` and `--opacity`.
 
 **Type in the overlay** — plain text is said by your character.
 
@@ -309,7 +337,7 @@ privately addressed to someone without the box saying so).
 /dismiss           send the cast home
 /cast Name text    put words in a cast member's mouth
 /camp [minutes]    make camp; /break ends it
-/pause  /resume    the director
+/pause  /resume    companions stop and start answering you (the narrator keeps looking)
 /weather rain 0.8  zone weather
 /bot Name follow   a playerbots command to one companion
 ```
@@ -326,40 +354,38 @@ level, quest, death, every companion line the model wrote and how long it took,
 what you typed in the overlay, and any warnings. Send the newest `.log`; the
 `.jsonl` beside it is the raw traffic if more is needed.
 
-**Scenes are weather.** The storyteller offers itself an opening every 3 minutes (`scene_interval`)
-and waits at least 2 minutes between scenes (`scene_min_gap`), on top of arrivals and fights. A scene
-waits until you have stood still for 8 seconds, and an arrival scene until you have been in the new
-place for 15 seconds, so you are there to see it. Scene lines show in the overlay in a lavender colour.
+**How often things happen is not a setting.** There is no scene timer and no gap between scenes.
+The narrator looks, chooses the next moment, plays it, and looks again, so the size of each moment
+is the wait after it: a companion's remark is over in seconds, strangers arriving, talking and going
+on their way take about a minute and a half. What keeps it from being a chatterbox is measured, not
+timed:
 
-**If it feels too quiet (or too busy), turn one dial.** `"pace"` in `narrator.json` is how often the
-world speaks up: `1.0` is the numbers as written, `2.0` twice as often, `0.5` half. It shortens every
-wait between things at once — scenes, NPC asides, how soon the same NPC may speak to you again, how
-soon a recurring stranger may come back, how long the companions wait in silence before one of them
-speaks up on their own, and how long after that before they may again — and leaves alone everything
-about whether you *see* a thing:
-how long a walk takes, how long people stand there, how long you must be still. It ships at **2.0**
-for testing. There is no need to edit the individual gaps; move the dial, play, and move it again.
+- **Breath.** Talking spends a voice's breath and quiet gives it back. The companions and any
+  stranger fetched to talk to them share one breath (about 20 seconds of talk, then 45 seconds of
+  quiet); each person who lives here has their own (about 60 seconds, then 90). A winded voice
+  leaves the menu until it has rested.
+- **Topics are spent by distance.** Something a person has said, and somebody arriving on the road,
+  comes back only after the party has walked about 500 yards (`"hook_rest_yards"`).
+- **Nobody left is a quiet.** When nobody has anything to say or the breath to say it, the model is
+  not asked; the narrator checks again within a second or two.
 
-**Nowhere runs out of scenes.** There is a limit on how many scenes one place may host in a while
-(`scene_max_per_area` over `scene_area_memory`), so that standing in one square all evening does not
-make that square the only theatre in the world. **It is off for testing** (`"scene_max_per_area": 0`
-is no limit). Set it to 8 to turn it back on. A "place" is the subzone — Goldshire, the Trade
-District, Valley of Heroes — not the whole zone. If you ever see `this place has had its share` in
-the log, that is this rule, and 0 switches it off.
-
-**When the overlay glows,** the caption says where to look. Three shapes: someone appears about
-9 yards in front of you and walks up (sometimes two of them); two or three people stand off to one
-side talking to each other and you overhear them (they never come over); or a pair comes past you
-mid-conversation and keeps going. In a town most scenes are overheard; on the road most come over.
-They stand 12 seconds after their last line, then walk off for 20 seconds before they log out. The
-log says `story:gone Name is gone` when they have. Companions remember the scenes they stood through.
+`"pace"` still exists but now moves only how soon the narrator checks again after a quiet or a failed
+look, and how soon a recurring stranger may come back (`"scene_recur_gap"`). It is no longer the
+dial for how often the world speaks.
 
 **Who the strangers are.** A bot already wandering within 40 yards of you (one of the server's random
-bots with nobody to follow, of your faction, not fighting) is borrowed first: it walks over, plays
-the part, and afterwards goes back to its own business rather than logging out. The scene line says
-`borrowed Marla` and the end says `Marla goes back to their own business`. Only the places left over
-are filled by logging someone in from the roster, and a recurring stranger the scene wants by name is
-still fetched. If a borrowed bot cannot reach you in 20 seconds it is put on its spot anyway.
+bots with nobody to follow, of your faction, not fighting) is borrowed first: it walks over talking,
+plays the part, and afterwards goes back to its own business. Only the places left over are filled
+by logging someone in from the roster, and a recurring stranger the scene wants by name is still
+fetched. Nobody is waited for: the moment starts as they set off, because people walk up talking.
+Afterwards everyone is let go where they stand, fetched strangers too; they carry on as travellers
+rather than logging out. Once strangers have been fetched, nobody else is fetched until you have
+walked about 500 yards, so a camp you are grinding at does not fill up with travellers; bots really
+standing about can still walk over. Companions remember the moments they stood through.
+
+The shapes are the narrator's choice: someone walks up to you, two people talk to each other off to
+one side and you overhear, a pair passes mid-conversation, or nobody moves and the people already
+here speak.
 
 **Level does not exclude anyone from being borrowed.** A level 60 bot standing in Stormwind can have
 a conversation near your level 5 party; it only matters to someone reading the nameplate, and the
@@ -367,15 +393,15 @@ alternative was that nothing was ever borrowed in a city. `"scene_borrow_level_s
 `narrator.json` puts a window back if you want one (0, the default, means no limit), and
 `"scene_borrow": false` goes back to fetching everyone.
 
-**If nothing plays at all,** the log now says why. `story:quiet no scene on this encounter: ...` and
-`npc:quiet nobody speaks up: ...` name the reason once, each time it changes. The whole list:
-`combat`, `the player is moving`, `the player has only just arrived`, `too soon after the last scene`,
-`this place has had its share`, `a scene is playing`, `nobody is here`, `paused`. If you see the same
-reason for a whole session, that is the thing to send me.
+**If nothing plays at all,** the log says why, as `narrator:` lines:
+`narrator:quiet nobody with the breath to speak: ...` (everyone is winded or has said their piece),
+`narrator:busy did not look: a moment is already playing`, and `narrator:failed ...` when the model
+answered with nothing playable, cast somebody it was not offered, or could not be reached. If you see
+the same line for a whole session, that is the thing to send me.
 
-**Strangers and NPCs will interrupt you**, on purpose. Somebody walking up while a companion is
-mid-sentence is how a tavern sounds, and lines never land on top of each other because everyone
-speaks from one clock. Nothing is held back because the party is talking.
+**Strangers and the people who live here will interrupt you**, on purpose. Somebody walking up while
+a companion is mid-sentence is how a tavern sounds, and lines never land on top of each other because
+everyone speaks from one clock. Nothing is held back because the party is talking.
 
 **If you still cannot see them,** the log will say why. `placed 74 yards below Bale` means the
 module is older than the height fix (rebuild it; see *Pulling new code*). No such line and no stranger
@@ -396,6 +422,15 @@ python -m narrator story brief --revise            # after some of it has played
 python -m narrator story reset                     # forget what was played
 ```
 `STORY_BIBLE.md` is the file format.
+
+**What happens once it is loaded.** Nothing in the bible is scheduled. On every look the narrator is
+shown the beats whose triggers hold, and it chooses whether now is the moment, as it does for anybody:
+a figure bound to a roster character arrives as a stranger with the beat's gist, and a figure bound to
+one of your companions raises it themselves. A beat that plays is spent and the companions remember
+what it revealed; its thread then rests until the party has walked 1,500 yards (`"story_rest_yards"`).
+The people who live in the bible's zones grumble about its premise like any other local trouble. A
+beat's moment shows in the log as a `narrator:took` line like any other, and `narrator story show`
+marks which beats have played.
 
 ## Briefs: who the companions are
 
@@ -431,34 +466,66 @@ conversation log. At low level that is a handful of lines, and load says how man
 (`Kept from play: 3 memories, 12 conversations, 2 relationships`). Add `--fresh` to forget those too and
 start the character clean. Either way the briefed companions are driven from the next `narrator run`.
 
-## NPCs speak up
+## The people who live here
 
-The innkeeper, the guard at the gate, the questgiver with work for you: an NPC you come up to may
-say one thing to you, in a voice that fits its job, from facts the game supplies. It turns to face
-you first, gestures, and the bubble appears over its head in the client. This needs the module
-rebuilt (it adds `npc.about` and `npc.face`). One thing to check: the module's old LLM hook, if it is
-still on, makes bots and NPCs small-talk through the module's own endpoint, and that would talk over
-the narrator's lines for the same NPC. It is off by default; make sure it stayed that way:
+The innkeeper, the guard at the gate, the farmer with work for you: walk within 25 yards
+(`"here_yards"`) and they are on the narrator's menu, and whoever you walk up to is usually the next
+moment. They speak where they stand, with a gesture now and then, and the bubble appears over their
+head in the client. What they say is hung on facts the game supplies, one topic at a time, each spent
+by saying it:
+
+1. a vendor's wares, for anyone who sells or repairs
+2. the quest they have for you, or the one you have finished for them, from the quest's own text,
+   in their own words and never read out
+3. something locals grumble about in this zone (the list is `narrator/world/local_talk.md`); a
+   grumble said by one person is said for everybody
+4. their own day, for somebody with nothing to ask of you
+
+A topic comes back once the party has walked about 500 yards. Each resident also has their own
+breath (about a minute of talk, then a minute and a half of quiet), so a vendor talks shop, then the
+town, then takes a minute or two off. None of the old `npc_*` settings exist any more; whether
+somebody speaks is the narrator's choice from what it is shown.
+
+This needs the module rebuilt (it adds `npc.about` and `npc.face`). One thing to check: the module's
+old LLM hook, if it is still on, makes bots and NPCs small-talk through the module's own endpoint,
+and that would talk over the narrator's lines for the same NPC. It is off by default; make sure it stayed that way:
 
 ```powershell
 Select-String LLMEnabled C:\wow\server\aiplayerbot.conf     # nothing, or a # line, or = 0 is fine; = 1 or = 2 set to 0
 ```
 
-**How often.** One aside every 90 seconds at most, whoever speaks; the same NPC not again for half an
-hour (both divided by `pace`, so 45 seconds and a quarter hour at the shipped 2.0); never in a fight
-near you, never over a scene or a conversation; an NPC with no service and no quest only one time in four. It speaks when you stop within 10 yards of it, or pass within 5 (a guard
-at a gate). In `narrator.json`: `"npc_asides": true`, `"npc_gap": 90`, `"npc_revisit": 1800`,
-`"npc_greet_radius": 10`, `"npc_pass_radius": 5`, `"npc_civilian_chance": 0.25`.
+**In the log** a resident's moment is a `narrator:took` line naming who was taken and why, then their
+line as the world heard it. If the module is old, the log says `npc: the module does not know
+npc.about` and the person still speaks, from less.
 
-**In the log** each one is a line like
-`npc:aside  Innkeeper Farley to Bale: Mind the step.  [npc Innkeeper Farley, role innkeeper, moment stopped, hook quest_offer, gesture wave]`
-followed by the `chat [monster_say]` line as the world heard it. `role` is what the game said it
-is; `hook` is the facts the line hung on. If the module is old, the log says
-`the module does not know npc.about` and the NPC still speaks, from less.
+**What to watch for:** the wrong person chosen (a vendor when the questgiver was right there), the
+same thing said twice, lines that ignore what they were holding, and the bubble on the wrong head.
+Nobody turns a resident toward you any more (that went with the old asides), so somebody facing
+away while they talk to you is expected for now; say if it reads badly.
 
-**What to watch for, this first time:** too many, too few, the wrong ones (a vendor when the
-questgiver was right there), lines that ignore the hook, and the bubble on the wrong head. All five
-are numbers or facts I can tune from the log.
+## Voices
+
+Every spoken line can be said out loud by Kokoro, for companions, strangers and the people who live
+here alike, in step with the chat bubble. Emotes stay silent. It is **off by default**.
+
+```powershell
+cd C:\wow\Azeroth_Narrator
+pip install -e ".[voice]"
+```
+Put `kokoro-v1.0.onnx` and `voices-v1.0.bin` (the kokoro-onnx model files) in that folder, then add
+to `narrator.json`:
+```json
+"tts": true,
+"tts_cast": {"Ansel": "bm_fable"}
+```
+`tts_cast` gives a companion a voice by name; pick them by ear. Everyone else gets a voice from their
+gender's pool by a hash of their name, so the same farmer sounds the same every session, and nobody
+draws a voice a companion has. NPCs have a gender only with the module rebuilt since 28 September;
+before that they draw from either pool. `"tts_device": "cuda"` is the default and falls back to the
+CPU when onnxruntime has no CUDA (then `"tts_threads": 2` keeps the server's bots their cores);
+`"tts_speed"` and `"tts_gap"` (a pause between voiced pieces) are the other two dials. A missing
+model file, a failed render or no audio device leaves the line silent and logs why once, as
+`voices: ... lines go out silent`; it never stops a line being said.
 
 ## Characters made to order
 
@@ -545,12 +612,14 @@ Both are safe to run at any time; `--act` is the only thing that changes the wor
 
 ## Pulling new code
 
-All three, every time; a pull that finds nothing new is free:
+All three, every time; a pull that finds nothing new is free. Work is merged into each repository's
+default branch, so pull that (a branch that is still being tried out gets its own name in the
+message that asks you to test it):
 
 ```powershell
-cd C:\wow\mangos-classic  ; git pull origin claude/documentation-review-s056qd
-cd C:\wow\playerbots      ; git pull origin claude/documentation-review-s056qd
-cd C:\wow\Azeroth_Narrator; git pull origin claude/documentation-review-s056qd
+cd C:\wow\mangos-classic  ; git checkout master; git pull origin master
+cd C:\wow\playerbots      ; git checkout master; git pull origin master
+cd C:\wow\Azeroth_Narrator; git checkout main;   git pull origin main
 ```
 
 Then, depending on what came in:
@@ -565,9 +634,11 @@ cmake --install build --config Release
 powershell -ExecutionPolicy Bypass -File setup\Update-Databases.ps1
 powershell -ExecutionPolicy Bypass -File setup\Test-Setup.ps1
 ```
-This round's module changes need the rebuild: strangers placed on the ground instead of under it,
-no re-roll of Ansel or a stranger at login, no `<AFK>` over a stranger's head, `bot.face` so two
-strangers talking to each other look at each other (without it they both face you, and the log says
-`the module does not know bot.face` once), and `quest.nearby` so a stranger can mention work close by
-(without it the log says `the module does not know quest.nearby` once).
+The latest module changes that need the rebuild: NPCs report their gender, so voices match them
+(28 September; without it an NPC's voice comes from either pool), and quest leads carry the quest's
+own text, so a questgiver raises their work in its own words (22 September; without it they know
+only the title). Earlier rounds brought strangers placed on the ground instead of under it, no
+re-roll of Ansel or a stranger at login, `bot.face` so two strangers talking to each other look at
+each other, `quest.nearby` for work close by, and `npc.about` and `npc.face` for the people who live
+here; a module missing any of those says `the module does not know ...` once in the log.
 If the module added new source files, run the `cmake -B build ...` configure line from `BUILDING_PLAYERBOTS.md` before the build. `Test-Setup.ps1` tells you if the installed binary is older than the module source.
