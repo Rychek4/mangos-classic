@@ -149,6 +149,7 @@ scene_borrow_arrive  scene_borrow_wait  scene_linger  scene_leave_seconds
 scene_line_gap_min  scene_line_gap_max
 npc_asides  npc_gap  npc_revisit  npc_passed_retry  npc_greet_radius  npc_pass_radius
 npc_civilian_chance  npc_face_seconds  npc_settle
+poll_interval  poll_cast_offered
 ```
 
 ---
@@ -238,7 +239,7 @@ raises their own quest from the quest's own text (both need the module rebuilt; 
 22 September rebuild a questgiver knows only the quest's title).
 
 **Each moment is named as it starts.** A line in the scene colour, `✦` and the moment's premise,
-shows above the chat box for six seconds. The border no longer flashes: every remark is a moment
+shows in the overlay under the chat lines, above the buttons, for six seconds. The border no longer flashes: every remark is a moment
 now, so it would be flashing most of the time.
 
 **The scene box is off by default.** `narrator-ui --scene-box` brings it back: a second box slides
@@ -307,7 +308,7 @@ over every pause inside a moment that is not speech (1.5 gives a moment half aga
   moment was and how many looks the narrator has taken (`5 taken of 9 looks, 1 failed`)
 - `pace` — what the last moment cost (`4 pieces in 18 s`), the average so far, and the `tempo`
 - `residents` — who is on the narrator's menu, and who is catching their breath and for how long
-- `party` — the mode, how long it has been quiet, replies and silences
+- `party` — the mode, whether a companion has asked you something, replies and silences
 - `model` — the queue and the last timing
 - `cast` — who is standing in a moment, and whether they were borrowed from nearby
 
@@ -377,15 +378,17 @@ dial for how often the world speaks.
 bots with nobody to follow, of your faction, not fighting) is borrowed first: it walks over talking,
 plays the part, and afterwards goes back to its own business. Only the places left over are filled
 by logging someone in from the roster, and a recurring stranger the scene wants by name is still
-fetched. Nobody is waited for: the moment starts as they set off, because people walk up talking.
+fetched. A borrowed bot is not waited for: the moment starts as it sets off, because people walk
+up talking. One logged in from the roster appears on its spot once the login completes.
 Afterwards everyone is let go where they stand, fetched strangers too; they carry on as travellers
 rather than logging out. Once strangers have been fetched, nobody else is fetched until you have
 walked about 500 yards, so a camp you are grinding at does not fill up with travellers; bots really
-standing about can still walk over. Companions remember the moments they stood through.
+standing about can still walk over, and a story beat's figure can still arrive. Companions remember the moments they stood through.
 
 The shapes are the narrator's choice: someone walks up to you, two people talk to each other off to
 one side and you overhear, a pair passes mid-conversation, or nobody moves and the people already
-here speak.
+here speak. The shape places strangers logged in from the roster; a bot borrowed from nearby walks
+over to you whatever the shape, so a borrowed pair talking to each other ends up beside you.
 
 **Level does not exclude anyone from being borrowed.** A level 60 bot standing in Stormwind can have
 a conversation near your level 5 party; it only matters to someone reading the nameplate, and the
@@ -394,10 +397,11 @@ alternative was that nothing was ever borrowed in a city. `"scene_borrow_level_s
 `"scene_borrow": false` goes back to fetching everyone.
 
 **If nothing plays at all,** the log says why, as `narrator:` lines:
-`narrator:quiet nobody with the breath to speak: ...` (everyone is winded or has said their piece),
-`narrator:busy did not look: a moment is already playing`, and `narrator:failed ...` when the model
-answered with nothing playable, cast somebody it was not offered, or could not be reached. If you see
-the same line for a whole session, that is the thing to send me.
+`narrator:quiet nobody with the breath to speak: ...` once when a quiet begins (everyone is winded or
+has said their piece), `narrator:nobody nobody to cast: ...` when there was nobody to put in a
+moment, and `narrator:failed ...` when the model answered with nothing playable, cast somebody it
+was not offered, or could not be reached. With no line at all, the narrator has not seen you in the
+world yet. If you see the same line for a whole session, that is the thing to send me.
 
 **Strangers and the people who live here will interrupt you**, on purpose. Somebody walking up while
 a companion is mid-sentence is how a tavern sounds, and lines never land on top of each other because
@@ -474,7 +478,8 @@ moment. They speak where they stand, with a gesture now and then, and the bubble
 head in the client. What they say is hung on facts the game supplies, one topic at a time, each spent
 by saying it:
 
-1. a vendor's wares, for anyone who sells or repairs
+1. a vendor's wares, for somebody whose job is selling or repairing (an innkeeper who also sells is
+   an innkeeper first)
 2. the quest they have for you, or the one you have finished for them, from the quest's own text,
    in their own words and never read out
 3. something locals grumble about in this zone (the list is `narrator/world/local_talk.md`); a
@@ -520,12 +525,13 @@ to `narrator.json`:
 ```
 `tts_cast` gives a companion a voice by name; pick them by ear. Everyone else gets a voice from their
 gender's pool by a hash of their name, so the same farmer sounds the same every session, and nobody
-draws a voice a companion has. NPCs have a gender only with the module rebuilt since 28 September;
+else draws a voice named in `tts_cast`. NPCs have a gender only with the module rebuilt since 28 September;
 before that they draw from either pool. `"tts_device": "cuda"` is the default and falls back to the
 CPU when onnxruntime has no CUDA (then `"tts_threads": 2` keeps the server's bots their cores);
 `"tts_speed"` and `"tts_gap"` (a pause between voiced pieces) are the other two dials. A missing
-model file, a failed render or no audio device leaves the line silent and logs why once, as
-`voices: ... lines go out silent`; it never stops a line being said.
+model file or no audio device turns voices off and logs why once, as `voices: ... lines go out
+silent`; a line that fails to render goes out silent with a warning of its own. Neither ever stops a
+line being said.
 
 ## Characters made to order
 
@@ -554,8 +560,9 @@ Ansel is made at level 3. Before this round the module re-rolled him to a random
 time he logged in (that is where the level-43 Ansel and "too low level" came from); the rebuilt
 module leaves made characters and requested logins at the level they were given.
 **A recurring stranger** is a character in the file with `"owner": "cast"` and a `"home"` (a zone or
-area name, like `Elwynn Forest`). The storyteller brings them back in scenes there, remembering the
-last time; the example file has Wenna, a pedlar on the Goldshire road. Set `"level": 3` on Ansel in
+area name, like `Elwynn Forest`). The narrator may be offered them there once 15 minutes have passed
+since they were last met (`"scene_recur_gap"`, halved at the shipped `pace` of 2.0), and they
+remember the last time; the example file has Wenna, a pedlar on the Goldshire road. Set `"level": 3` on Ansel in
 your copy of the file (the example says so now).
 They land on `castbot0`, `castbot1`, ... accounts (`AiPlayerbot.Bridge.CastAccountPrefix`),
 nine each, and the random-bot manager leaves them alone. Bring one in with
