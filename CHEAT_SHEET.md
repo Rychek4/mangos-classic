@@ -277,7 +277,10 @@ nobody who lives here and none of the server's wandering bots is within 25 yards
 (`"here_yards"`), the companions are the moment: one says something, another may answer, and they
 talk about the road, the place or what just happened. Then they are winded: the companions share about 20 seconds of talk before
 they need 45 seconds of quiet, and the log says `narrator:quiet nobody with the breath to speak: the
-party is catching its breath`. Walk up to somebody and whatever they were saying trails off, half
+party is catching its breath`. When they finish a topic, the narrator says so and they stay quiet
+for 90 seconds while nobody is about (`"banter_lull"`; `narrator:lull` in the log, and `between
+topics` in the sauce). Towns are not held: anybody you walk up to still talks, and leaving them is
+not followed by a wait. Walk up to somebody and whatever they were saying trails off, half
 said (`narrator:cut trails off: somebody is here`), and the person you walked up to is the next
 moment. **Needs no rebuild.**
 
@@ -304,10 +307,14 @@ over every pause inside a moment that is not speech (1.5 gives a moment half aga
 **For streaming: the sauce.** `narrator-ui --sauce` opens a third window up the right-hand side
 (drag it anywhere; it remembers) that shows how the sauce is made. The top lines are live:
 
-- `scenes` — `looking`, or `playing:` and the moment's premise; under it, how long ago the last
-  moment was and how many looks the narrator has taken (`5 taken of 9 looks, 1 failed`)
+- `scenes` — `looking`, `between topics: quiet for 62 s`, or `playing:` and the moment's premise;
+  under it, how long ago the last moment was and how many looks the narrator has taken (`5 taken of
+  9 looks, 1 failed`)
 - `pace` — what the last moment cost (`4 pieces in 18 s`), the average so far, and the `tempo`
 - `residents` — who is on the narrator's menu, and who is catching their breath and for how long
+- `story` — always there: the zones the story bible's beats name, their level range, your level and
+  zone, and `in range` or `out of range` (`Elwynn Forest, Westfall · levels up to 12 · you: level 8,
+  Elwynn Forest · in range`). `no bible loaded` when there is none
 - `party` — the mode, whether a companion has asked you something, replies and silences
 - `model` — the queue and the last timing
 - `cast` — who is standing in a moment, and whether they were borrowed from nearby
