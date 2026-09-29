@@ -499,7 +499,10 @@ portrait lines`). Add `--fresh` to forget those too and start the character clea
 The innkeeper, the guard at the gate, the farmer with work for you: walk within 25 yards
 (`"here_yards"`) and they are on the narrator's menu, and whoever you walk up to is usually the next
 moment. They turn to face you, gesture now and then, and the bubble appears over their head in the
-client; once you walk on (out of those 25 yards) they turn back the way they stood. What they say is
+client; once you walk on (out of those 25 yards) they turn back the way they stood. Now and then the
+narrator has one walk over to you, walk along with you to the edge of where they live, or go back to
+their work (`npc.move`); a patrolling guard or an escort never moves. Anybody moved is back at their
+spot when you walk on, and a server restart resets everyone anyway. What they say is
 hung on facts the game supplies, one topic at a time, each spent by saying it:
 
 1. a vendor's wares, for somebody whose job is selling or repairing (an innkeeper who also sells is
@@ -663,7 +666,9 @@ cmake --install build --config Release
 powershell -ExecutionPolicy Bypass -File setup\Update-Databases.ps1
 powershell -ExecutionPolicy Bypass -File setup\Test-Setup.ps1
 ```
-The latest module changes that need the rebuild: `bot.place` can walk a bot to its spot, so a
+The latest module changes that need the rebuild: `npc.move`, so somebody who lives here can walk
+over to you, walk along with you, and go back to their work (29 September; without it they stay where
+they stand and the log says `the module does not know npc.move` once), and `bot.place` can walk a bot to its spot, so a
 stranger borrowed from nearby walks to its place in the scene (28 September; without it they are put
 there instead), and NPCs report their gender, so voices match them (28 September; without it an NPC's
 voice comes from either pool), and quest leads carry the quest's
