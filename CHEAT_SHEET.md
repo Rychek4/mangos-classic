@@ -150,7 +150,11 @@ scene_line_gap_min  scene_line_gap_max
 npc_asides  npc_gap  npc_revisit  npc_passed_retry  npc_greet_radius  npc_pass_radius
 npc_civilian_chance  npc_face_seconds  npc_settle
 poll_interval  poll_cast_offered
+memory_extraction_every_rows  memory_extraction_window_rows  core_memory_consolidation
 ```
+
+The last three came out on 29 September: what the companions remember is decided in the quiet now,
+not every ten lines or every seventy-five memories (see *What they remember*).
 
 ---
 
@@ -283,6 +287,16 @@ topics` in the sauce). Towns are not held: anybody you walk up to still talks, a
 not followed by a wait. Walk up to somebody and whatever they were saying trails off, half
 said (`narrator:cut trails off: somebody is here`), and the person you walked up to is the next
 moment. **Needs no rebuild.**
+
+**What they remember.** Nothing is written down as it happens. The moments that play, what you say,
+and the game's own moments (a level, a death, a quest you take or turn in) are only noticed. When
+the narrator goes quiet, the model is idle, and the party thinks back: one question over everything
+since the last time, answered with who keeps what, or nothing, which is usual. The log says
+`memory:kept Polai: ...` or `memory:kept nothing, of 7 things seen`. Stopping with Ctrl-C thinks
+back one last time before the model goes. Each companion also has up to three lines of what play
+has made them, beside the three memories they joined with; after they keep something, the same
+quiet asks whether it changes who they are, and rewrites those three lines if so
+(`memory:portrait`). Loading a brief does not wipe them. **Needs no rebuild.**
 
 **Companions do not join passing bots' guilds.** A random bot walks up, asks, and the companion used
 to answer "Sounds good, sign me up!" and join. The module tries not to recruit someone's alt but makes
@@ -475,10 +489,10 @@ not need to pull anything from the database first.
 
 **What load overwrites, and what it keeps.** Load rewrites the character's profile at once:
 presence, voice and the rules become the personality, the brief's memories the core memories; the
-old ones are gone. What the character has from play stays: recent memories, relationships, and the
-conversation log. At low level that is a handful of lines, and load says how many
-(`Kept from play: 3 memories, 12 conversations, 2 relationships`). Add `--fresh` to forget those too and
-start the character clean. Either way the briefed companions are driven from the next `narrator run`.
+old ones are gone. What the character has from play stays: recent memories, relationships, the
+conversation log, and what play has made them (their portrait, below). At low level that is a handful
+of lines, and load says how many (`Kept from play: 3 memories, 12 conversations, 2 relationships, 1
+portrait lines`). Add `--fresh` to forget those too and start the character clean. Either way the briefed companions are driven from the next `narrator run`.
 
 ## The people who live here
 
