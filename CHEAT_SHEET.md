@@ -467,19 +467,26 @@ decide everything; nothing is scheduled.
 the mouths of the people who live there, one to a companion and one to a stranger, each said once
 and back again, from a new angle, after about 500 yards (`"hook_rest_yards"`). The state's
 standing fact is on the narrator's page. Somewhere else at the right level for a module, the people
-there pass on its *call*: word of what is happening where you should go next. Out-levelled, a
-module is silent.
+there pass on its *call*: word of what is happening where you should go next, for as long as
+something can still happen there (a module resting in its last state stops calling). Out-levelled,
+a module is silent.
 
 A turn is offered to the narrator when its opening holds (`any`; `arrival` in a new area;
-`aftermath` of a fight; `quiet`, neither of those): its figure (a roster character, a made one, or whoever is standing about) and any
-residents it needs (a guard as the accuser) are put on the menu. When a moment casts all of them
+`aftermath` of a fight; `quiet`, neither of those), in its `area` if it names one (the forge at
+Kharanos, not anywhere in Dun Morogh): its figure (a roster character, a made one, or whoever is
+standing about) and any residents it needs (an innkeeper as host) are put on the menu. When a moment casts all of them
 and plays through uncut, the module moves to its next state for good, and what the turn revealed
 is seen by the companions, to keep or not in the quiet like anything else they saw. The log shows
 `narrator:took` as usual, then `narrator:story turned '<turn>' -> <state>`.
 
+**Area names** are the game's own, checked on load: 1.12 names fewer places than later versions
+(Stormwind City is one area, with no Trade District), and a wrong word would mean the turn never
+plays. The list is `narrator\story\areas.txt`.
+
 **Made figures.** `story load` prints any *made* figure the server does not have yet as a
 `characters.json` entry; add it and run `python -m narrator character sync` (see *Characters made
-to order*).
+to order*). A made figure needs a name nobody else has: one already taken by a different character
+(the example file's Wenna, say) is refused by name.
 
 ## Briefs: who the companions are
 
