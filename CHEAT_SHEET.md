@@ -151,10 +151,13 @@ npc_asides  npc_gap  npc_revisit  npc_passed_retry  npc_greet_radius  npc_pass_r
 npc_civilian_chance  npc_face_seconds  npc_settle
 poll_interval  poll_cast_offered
 memory_extraction_every_rows  memory_extraction_window_rows  core_memory_consolidation
+story_rest_yards
 ```
 
 The last three came out on 29 September: what the companions remember is decided in the quiet now,
-not every ten lines or every seventy-five memories (see *What they remember*).
+not every ten lines or every seventy-five memories (see *What they remember*). `story_rest_yards`
+came out on 30 September with the first story bible: a breadcrumb rests like any other topic now,
+by `"hook_rest_yards"` (see *The story*).
 
 ---
 
@@ -326,9 +329,11 @@ over every pause inside a moment that is not speech (1.5 gives a moment half aga
   9 looks, 1 failed`)
 - `pace` — what the last moment cost (`4 pieces in 18 s`), the average so far, and the `tempo`
 - `residents` — who is on the narrator's menu, and who is catching their breath and for how long
-- `story` — always there: the zones the story bible's beats name, their level range, your level and
-  zone, and `in range` or `out of range` (`Elwynn Forest, Westfall · levels up to 12 · you: level 8,
-  Elwynn Forest · in range`). `no bible loaded` when there is none
+- `story` — always there: the module playing where you are and its state, your level and zone, a
+  turn on offer, and how many have turned this session (`westfall_watchers: The roads are watched
+  (levels 10–20) · you: level 12, Westfall · turn on offer: caught_watcher · 1 turn this
+  session`). Where nothing plays, `no module here` and the zones calling you (`· calling:
+  Redridge Mountains`). `no campaign loaded` when there is none
 - `party` — the mode, whether a companion has asked you something, replies and silences
 - `model` — the queue and the last timing
 - `cast` — who is standing in a moment, and whether they were borrowed from nearby
@@ -406,7 +411,7 @@ up talking. One logged in from the roster appears on its spot once the login com
 Afterwards everyone is let go where they stand, fetched strangers too; they carry on as travellers
 rather than logging out. Once strangers have been fetched, nobody else is fetched until you have
 walked about 500 yards, so a camp you are grinding at does not fill up with travellers; bots really
-standing about can still walk over, and a story beat's figure can still arrive. Companions remember the moments they stood through.
+standing about can still walk over, and a story turn's figure can still arrive. Companions remember the moments they stood through.
 
 The shapes are the narrator's choice: someone walks up to you, two people talk to each other off to
 one side and you overhear, a pair passes mid-conversation, or nobody moves and the people already
@@ -439,26 +444,42 @@ in front of you: send the log.
 
 ```powershell
 cd C:\wow\Azeroth_Narrator
-python -m narrator story brief --premise "Someone is paying the Defias to watch the roads."
+python -m narrator story brief                     # the whole road, levels 1 to 60
+python -m narrator story brief --idea "Someone is paying the Defias to watch the roads."
 ```
-Writes `story-brief.md` (needs the server up, for the roster). Paste it into a
+Writes `story-brief.md` and `STORY_BIBLE.md` beside it. With the server up the brief carries the
+party and the roster; without it, it is the blank template for every Alliance zone. Paste it into a
 frontier model; save the JSON it answers with; then
 ```powershell
-python -m narrator story load story-bible.json     # strict; names every problem
-python -m narrator story show                      # the bible, with played beats marked
+python -m narrator story load campaign.json        # strict; names every problem
+python -m narrator story show                      # every module, with where it stands marked >>
 python -m narrator story brief --revise            # after some of it has played
-python -m narrator story reset                     # forget what was played
+python -m narrator story reset                     # every module back to its first state
 ```
-`STORY_BIBLE.md` is the file format.
+`STORY_BIBLE.md` is the file format. A version 1 bible is refused; write a campaign instead.
 
-**What happens once it is loaded.** Nothing in the bible is scheduled. On every look the narrator is
-shown the beats whose triggers hold, and it chooses whether now is the moment, as it does for anybody:
-a figure bound to a roster character arrives as a stranger with the beat's gist, and a figure bound to
-one of your companions raises it themselves. A beat that plays is spent and the companions remember
-what it revealed; its thread then rests until the party has walked 1,500 yards (`"story_rest_yards"`).
-The people who live in the bible's zones grumble about its premise like any other local trouble. A
-beat's moment shows in the log as a `narrator:took` line like any other, followed by
-`narrator:story played '<beat>' (<thread>)`, and `narrator story show` marks which beats have played.
+**What a campaign is.** Modules, each with the zones it lives in and the levels it plays at. A
+module is in one state at a time: a standing fact (what the place is like now), breadcrumbs (what
+people there talk about) and turns (the moments that move it on). Where you are and your level
+decide everything; nothing is scheduled.
+
+**What happens once it is loaded.** In a module's home zone at its levels, its breadcrumbs go into
+the mouths of the people who live there, one to a companion and one to a stranger, each said once
+and back again, from a new angle, after about 500 yards (`"hook_rest_yards"`). The state's
+standing fact is on the narrator's page. Somewhere else at the right level for a module, the people
+there pass on its *call*: word of what is happening where you should go next. Out-levelled, a
+module is silent.
+
+A turn is offered to the narrator when its opening holds (`any`; `arrival` in a new area;
+`aftermath` of a fight; `quiet`, neither of those): its figure (a roster character, a made one, or whoever is standing about) and any
+residents it needs (a guard as the accuser) are put on the menu. When a moment casts all of them
+and plays through uncut, the module moves to its next state for good, and what the turn revealed
+is seen by the companions, to keep or not in the quiet like anything else they saw. The log shows
+`narrator:took` as usual, then `narrator:story turned '<turn>' -> <state>`.
+
+**Made figures.** `story load` prints any *made* figure the server does not have yet as a
+`characters.json` entry; add it and run `python -m narrator character sync` (see *Characters made
+to order*).
 
 ## Briefs: who the companions are
 
