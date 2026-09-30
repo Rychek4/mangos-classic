@@ -249,6 +249,11 @@ raises their own quest from the quest's own text (both need the module rebuilt; 
 shows in the overlay under the chat lines, above the buttons, for six seconds. The border no longer flashes: every remark is a moment
 now, so it would be flashing most of the time.
 
+**The story shows on the overlay.** The last call you heard sits on a line just above the chat, in
+the scene colour (`❖ Word of Steelgrill's Depot, Dun Morogh`), until you get there, outlevel it or
+its story is done; it is still there after a restart. When a story turn reveals something, it goes
+into the chat as a `❖` line and the edge of the chat box glows once.
+
 **The scene box is off by default.** `narrator-ui --scene-box` brings it back: a second box slides
 out above the chat box for each moment, the premise as its title and the cast under it, and after
 the moment ends it counts down 45 seconds and slides back. **Pin** keeps it up to read later, **×**
