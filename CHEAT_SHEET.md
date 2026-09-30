@@ -485,6 +485,11 @@ and plays through uncut, the module moves to its next state for good, and what t
 is remembered by every companion with you. The log shows `narrator:took` as usual, then
 `narrator:story turned '<turn>' -> <state>` and `memory:kept everyone, from the story: ...`.
 
+**What the party knows is on the page.** From the next look on, the last few reveals (six,
+`"story_known"`), oldest first and each with the zone it was learned in, are on the narrator's page
+as what the party already knows, so a turn that follows from an earlier one is written knowing
+it. The log shows `narrator:assembled story so far` on every look while there is anything to know.
+
 **Area names** are the game's own, checked on load: 1.12 names fewer places than later versions
 (Stormwind City is one area, with no Trade District), and a wrong word would mean the turn never
 plays. The list is `narrator\story\areas.txt`.
@@ -492,7 +497,11 @@ plays. The list is `narrator\story\areas.txt`.
 **Made figures.** `story load` prints any *made* figure the server does not have yet as a
 `characters.json` entry; add it and run `python -m narrator character sync` (see *Characters made
 to order*). A made figure needs a name nobody else has: one already taken by a different character
-(the example file's Wenna, say) is refused by name.
+(the example file's Wenna, say) is refused by name. The level in the file is only what they are
+made at: a made figure is the party's age, brought to the party's level each time they arrive for
+a turn, fetched or borrowed, so a courier made at 8 for Elwynn is not a level 8 in Deadwind Pass.
+The log shows `cast: Ellory is level 23 for this moment (was 8)`; a bridge that refuses is a
+warning and the moment plays on.
 
 ## Briefs: who the companions are
 
