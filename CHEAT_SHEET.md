@@ -249,6 +249,11 @@ raises their own quest from the quest's own text (both need the module rebuilt; 
 shows in the overlay under the chat lines, above the buttons, for six seconds. The border no longer flashes: every remark is a moment
 now, so it would be flashing most of the time.
 
+**The moment shows on the overlay.** The line under the chat names the moment while it plays
+(`✦ Cylina makes her pitch.`), says who is waiting for your answer (`· Cylina Darkheart waits for
+your answer`), and says `· done` for a few seconds when it is over; a moment a story turn played
+in ends `❖ ... · the story turned`. It used to be a caption for six seconds at the start.
+
 **The story shows on the overlay.** The last call you heard sits on a line just above the chat, in
 the scene colour (`❖ Word of Steelgrill's Depot, Dun Morogh`), until you get there, outlevel it or
 its story is done; it is still there after a restart. When a story turn reveals something, it goes
@@ -484,6 +489,12 @@ standing about) and any residents it needs (an innkeeper as host) are put on the
 and plays through uncut, the module moves to its next state for good, and what the turn revealed
 is remembered by every companion with you. The log shows `narrator:took` as usual, then
 `narrator:story turned '<turn>' -> <state>` and `memory:kept everyone, from the story: ...`.
+
+**Said, not handed over.** A resident's topic, a call or a breadcrumb is spent when the words that
+say it went out, not when its holder was cast: `narrator:heard word of ...` now means somebody
+named the place, and a topic the model skipped is still theirs to raise. And where each turn
+stands is in the log once per change: `narrator:offered the story's turn '<module:turn>' on the
+page with <figure>`, or `waits for an innkeeper within reach`.
 
 **What the party knows is on the page.** From the next look on, the last few reveals (six,
 `"story_known"`), oldest first and each with the zone it was learned in, are on the narrator's page
