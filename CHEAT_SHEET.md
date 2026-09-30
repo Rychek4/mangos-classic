@@ -299,7 +299,8 @@ since the last time, answered with who keeps what, or nothing, which is usual. T
 back one last time before the model goes. Each companion also has up to three lines of what play
 has made them, beside the three memories they joined with; after they keep something, the same
 quiet asks whether it changes who they are, and rewrites those three lines if so
-(`memory:portrait`). Loading a brief does not wipe them. **Needs no rebuild.**
+(`memory:portrait`). Loading a brief does not wipe them. What a story turn reveals is the one
+exception to the quiet: everyone remembers it at once (see *The story*). **Needs no rebuild.**
 
 **Companions do not join passing bots' guilds.** A random bot walks up, asks, and the companion used
 to answer "Sounds good, sign me up!" and join. The module tries not to recruit someone's alt but makes
@@ -476,8 +477,8 @@ A turn is offered to the narrator when its opening holds (`any`; `arrival` in a 
 Kharanos, not anywhere in Dun Morogh): its figure (a roster character, a made one, or whoever is
 standing about) and any residents it needs (an innkeeper as host) are put on the menu. When a moment casts all of them
 and plays through uncut, the module moves to its next state for good, and what the turn revealed
-is seen by the companions, to keep or not in the quiet like anything else they saw. The log shows
-`narrator:took` as usual, then `narrator:story turned '<turn>' -> <state>`.
+is remembered by every companion with you. The log shows `narrator:took` as usual, then
+`narrator:story turned '<turn>' -> <state>` and `memory:kept everyone, from the story: ...`.
 
 **Area names** are the game's own, checked on load: 1.12 names fewer places than later versions
 (Stormwind City is one area, with no Trade District), and a wrong word would mean the turn never
