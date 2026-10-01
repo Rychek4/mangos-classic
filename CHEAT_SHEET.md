@@ -183,6 +183,7 @@ and the last value you passed for each is remembered until you pass another.
 
 **Right-click the overlay** for the menu:
 - **Console** — bring the console back
+- **Notes** — your notebook (the Notes button does the same)
 - **Quit** — close the whole UI cleanly
 
 **The button row above the box** — one order to every companion: **Come** (`summon`), **Follow**,
@@ -254,10 +255,17 @@ now, so it would be flashing most of the time.
 your answer`), and says `· done` for a few seconds when it is over; a moment a story turn played
 in ends `❖ ... · the story turned`. It used to be a caption for six seconds at the start.
 
-**The story shows on the overlay.** The last call you heard sits on a line just above the chat, in
-the scene colour (`❖ Word of Steelgrill's Depot, Dun Morogh`), until you get there, outlevel it or
-its story is done; it is still there after a restart. When a story turn reveals something, it goes
-into the chat as a `❖` line and the edge of the chat box glows once.
+**The story shows on the overlay.** When a story turn reveals something, it goes into the chat as a
+`❖` line and the edge of the chat box glows once.
+
+**Your notebook.** The **Notes** button at the right of the order row opens a window of your own notes,
+jotted as you hear things: a call you were told, with who said it, where you stood and their words
+(`Word of Steelgrill's Depot, Dun Morogh: "They say the gnomes…"`), a chapter turning as a heading,
+and what you learned under it. Every call you have heard is kept, not just the last. The button shows
+a pen (`Notes ✎`) when something has been written since you last opened the book. It is written top
+to bottom and opens to the last line; drag it where you like, **×** puts it away, and it is all still
+there after a restart, in the narrator's own save. The `❖ Word of` line above the chat is gone; the
+book is where that went.
 
 **When the story turns, a card says so.** A card appears at the top of the screen, `❖ The story
 turns`, with the zone, the chapter it left and the one it reached (`Elwynn Forest · The rent is
@@ -265,14 +273,16 @@ paid → Somebody's landlord`) and what you learned, in the author's words. It s
 (or press Escape in the chat box), so it cannot slip past, but it never takes the keyboard: the
 game keeps every key while it is up. It waits until a fight is over before showing. Drag it where
 you want it; it remembers. Only a change of chapter raises it: breadcrumbs and calls stay in the
-chat and on the `❖ Word of` line.
+chat, and calls go in your notes.
 
 **When somebody is waiting for your answer, the card asks you.** `✦ Melika Isenstrider is waiting
 for your answer`, her words under it, and a box. Nothing takes the keyboard from the game: click into
 the box when you want it, type, Enter. The line is said in the game as you, to her, and she answers
 it; the companions leave it to her. **×** is nothing to say. She waits as long as you stand with her,
 through a fight if one starts; walk off and she shrugs and goes back to her day. The eight-second
-wait is gone.
+wait is gone. The card comes up as she starts asking, with the whole line, so you can read it before
+she has finished saying it; if you have already walked off when she starts, she says it to your back
+and no card comes.
 
 **The scene box is off by default.** `narrator-ui --scene-box` brings it back: a second box slides
 out above the chat box for each moment, the premise as its title and the cast under it, and after
