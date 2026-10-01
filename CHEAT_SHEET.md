@@ -259,6 +259,14 @@ the scene colour (`❖ Word of Steelgrill's Depot, Dun Morogh`), until you get t
 its story is done; it is still there after a restart. When a story turn reveals something, it goes
 into the chat as a `❖` line and the edge of the chat box glows once.
 
+**When the story turns, a card says so.** A card appears at the top of the screen, `❖ The story
+turns`, with the zone, the chapter it left and the one it reached (`Elwynn Forest · The rent is
+paid → Somebody's landlord`) and what you learned, in the author's words. It stays until you click it
+(or press Escape in the chat box), so it cannot slip past, but it never takes the keyboard: the
+game keeps every key while it is up. It waits until a fight is over before showing. Drag it where
+you want it; it remembers. Only a change of chapter raises it: breadcrumbs and calls stay in the
+chat and on the `❖ Word of` line.
+
 **The scene box is off by default.** `narrator-ui --scene-box` brings it back: a second box slides
 out above the chat box for each moment, the premise as its title and the cast under it, and after
 the moment ends it counts down 45 seconds and slides back. **Pin** keeps it up to read later, **×**
