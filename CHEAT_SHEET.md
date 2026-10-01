@@ -259,6 +259,14 @@ the scene colour (`❖ Word of Steelgrill's Depot, Dun Morogh`), until you get t
 its story is done; it is still there after a restart. When a story turn reveals something, it goes
 into the chat as a `❖` line and the edge of the chat box glows once.
 
+**When the story turns, a card says so.** A card appears at the top of the screen, `❖ The story
+turns`, with the zone, the chapter it left and the one it reached (`Elwynn Forest · The rent is
+paid → Somebody's landlord`) and what you learned, in the author's words. It stays until you click it
+(or press Escape in the chat box), so it cannot slip past, but it never takes the keyboard: the
+game keeps every key while it is up. It waits until a fight is over before showing. Drag it where
+you want it; it remembers. Only a change of chapter raises it: breadcrumbs and calls stay in the
+chat and on the `❖ Word of` line.
+
 **The scene box is off by default.** `narrator-ui --scene-box` brings it back: a second box slides
 out above the chat box for each moment, the premise as its title and the cast under it, and after
 the moment ends it counts down 45 seconds and slides back. **Pin** keeps it up to read later, **×**
@@ -505,6 +513,12 @@ it. The log shows `narrator:assembled story so far` on every look while there is
 (Stormwind City is one area, with no Trade District), and a wrong word would mean the turn never
 plays. The list is `narrator\story\areas.txt`.
 
+**Companions in a moment answer the last line, with the page in view.** A companion cast into a
+moment is told what was just said and sees the narrator's page as a person standing there would
+(what has happened, what you said, who is about, what the party knows of the story), so its line is
+a reply rather than a remark beside the others. What you say out loud is on the page on a line of its
+own, so a line to a resident who was mid-speech is answered at the next look.
+
 **Made figures.** `story load` prints any *made* figure the server does not have yet as a
 `characters.json` entry; add it and run `python -m narrator character sync` (see *Characters made
 to order*). A made figure needs a name nobody else has: one already taken by a different character
@@ -512,7 +526,10 @@ to order*). A made figure needs a name nobody else has: one already taken by a d
 made at: a made figure is the party's age, brought to the party's level each time they arrive for
 a turn, fetched or borrowed, so a courier made at 8 for Elwynn is not a level 8 in Deadwind Pass.
 The log shows `cast: Ellory is level 23 for this moment (was 8)`; a bridge that refuses is a
-warning and the moment plays on.
+warning and the moment plays on. A made figure appears only for the story's turns: never as a
+walk-on stranger, however long since they were met. What the game knows about a resident (their
+quests for you) is read again after any quest event, so nobody offers you the quest you just turned
+in.
 
 ## Briefs: who the companions are
 
