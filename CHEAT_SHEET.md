@@ -267,6 +267,13 @@ game keeps every key while it is up. It waits until a fight is over before showi
 you want it; it remembers. Only a change of chapter raises it: breadcrumbs and calls stay in the
 chat and on the `❖ Word of` line.
 
+**When somebody is waiting for your answer, the card asks you.** `✦ Melika Isenstrider is waiting
+for your answer`, her words under it, and a box. Nothing takes the keyboard from the game: click into
+the box when you want it, type, Enter. The line is said in the game as you, to her, and she answers
+it; the companions leave it to her. **×** is nothing to say. She waits as long as you stand with her,
+through a fight if one starts; walk off and she shrugs and goes back to her day. The eight-second
+wait is gone.
+
 **The scene box is off by default.** `narrator-ui --scene-box` brings it back: a second box slides
 out above the chat box for each moment, the premise as its title and the cast under it, and after
 the moment ends it counts down 45 seconds and slides back. **Pin** keeps it up to read later, **×**
