@@ -249,6 +249,16 @@ raises their own quest from the quest's own text (both need the module rebuilt; 
 shows in the overlay under the chat lines, above the buttons, for six seconds. The border no longer flashes: every remark is a moment
 now, so it would be flashing most of the time.
 
+**The moment shows on the overlay.** The line under the chat names the moment while it plays
+(`✦ Cylina makes her pitch.`), says who is waiting for your answer (`· Cylina Darkheart waits for
+your answer`), and says `· done` for a few seconds when it is over; a moment a story turn played
+in ends `❖ ... · the story turned`. It used to be a caption for six seconds at the start.
+
+**The story shows on the overlay.** The last call you heard sits on a line just above the chat, in
+the scene colour (`❖ Word of Steelgrill's Depot, Dun Morogh`), until you get there, outlevel it or
+its story is done; it is still there after a restart. When a story turn reveals something, it goes
+into the chat as a `❖` line and the edge of the chat box glows once.
+
 **The scene box is off by default.** `narrator-ui --scene-box` brings it back: a second box slides
 out above the chat box for each moment, the premise as its title and the cast under it, and after
 the moment ends it counts down 45 seconds and slides back. **Pin** keeps it up to read later, **×**
@@ -299,7 +309,8 @@ since the last time, answered with who keeps what, or nothing, which is usual. T
 back one last time before the model goes. Each companion also has up to three lines of what play
 has made them, beside the three memories they joined with; after they keep something, the same
 quiet asks whether it changes who they are, and rewrites those three lines if so
-(`memory:portrait`). Loading a brief does not wipe them. **Needs no rebuild.**
+(`memory:portrait`). Loading a brief does not wipe them. What a story turn reveals is the one
+exception to the quiet: everyone remembers it at once (see *The story*). **Needs no rebuild.**
 
 **Companions do not join passing bots' guilds.** A random bot walks up, asks, and the companion used
 to answer "Sounds good, sign me up!" and join. The module tries not to recruit someone's alt but makes
@@ -476,8 +487,19 @@ A turn is offered to the narrator when its opening holds (`any`; `arrival` in a 
 Kharanos, not anywhere in Dun Morogh): its figure (a roster character, a made one, or whoever is
 standing about) and any residents it needs (an innkeeper as host) are put on the menu. When a moment casts all of them
 and plays through uncut, the module moves to its next state for good, and what the turn revealed
-is seen by the companions, to keep or not in the quiet like anything else they saw. The log shows
-`narrator:took` as usual, then `narrator:story turned '<turn>' -> <state>`.
+is remembered by every companion with you. The log shows `narrator:took` as usual, then
+`narrator:story turned '<turn>' -> <state>` and `memory:kept everyone, from the story: ...`.
+
+**Said, not handed over.** A resident's topic, a call or a breadcrumb is spent when the words that
+say it went out, not when its holder was cast: `narrator:heard word of ...` now means somebody
+named the place, and a topic the model skipped is still theirs to raise. And where each turn
+stands is in the log once per change: `narrator:offered the story's turn '<module:turn>' on the
+page with <figure>`, or `waits for an innkeeper within reach`.
+
+**What the party knows is on the page.** From the next look on, the last few reveals (six,
+`"story_known"`), oldest first and each with the zone it was learned in, are on the narrator's page
+as what the party already knows, so a turn that follows from an earlier one is written knowing
+it. The log shows `narrator:assembled story so far` on every look while there is anything to know.
 
 **Area names** are the game's own, checked on load: 1.12 names fewer places than later versions
 (Stormwind City is one area, with no Trade District), and a wrong word would mean the turn never
@@ -486,7 +508,11 @@ plays. The list is `narrator\story\areas.txt`.
 **Made figures.** `story load` prints any *made* figure the server does not have yet as a
 `characters.json` entry; add it and run `python -m narrator character sync` (see *Characters made
 to order*). A made figure needs a name nobody else has: one already taken by a different character
-(the example file's Wenna, say) is refused by name.
+(the example file's Wenna, say) is refused by name. The level in the file is only what they are
+made at: a made figure is the party's age, brought to the party's level each time they arrive for
+a turn, fetched or borrowed, so a courier made at 8 for Elwynn is not a level 8 in Deadwind Pass.
+The log shows `cast: Ellory is level 23 for this moment (was 8)`; a bridge that refuses is a
+warning and the moment plays on.
 
 ## Briefs: who the companions are
 
