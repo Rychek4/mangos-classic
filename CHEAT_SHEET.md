@@ -505,6 +505,12 @@ it. The log shows `narrator:assembled story so far` on every look while there is
 (Stormwind City is one area, with no Trade District), and a wrong word would mean the turn never
 plays. The list is `narrator\story\areas.txt`.
 
+**Companions in a moment answer the last line, with the page in view.** A companion cast into a
+moment is told what was just said and sees the narrator's page as a person standing there would
+(what has happened, what you said, who is about, what the party knows of the story), so its line is
+a reply rather than a remark beside the others. What you say out loud is on the page on a line of its
+own, so a line to a resident who was mid-speech is answered at the next look.
+
 **Made figures.** `story load` prints any *made* figure the server does not have yet as a
 `characters.json` entry; add it and run `python -m narrator character sync` (see *Characters made
 to order*). A made figure needs a name nobody else has: one already taken by a different character
@@ -512,7 +518,10 @@ to order*). A made figure needs a name nobody else has: one already taken by a d
 made at: a made figure is the party's age, brought to the party's level each time they arrive for
 a turn, fetched or borrowed, so a courier made at 8 for Elwynn is not a level 8 in Deadwind Pass.
 The log shows `cast: Ellory is level 23 for this moment (was 8)`; a bridge that refuses is a
-warning and the moment plays on.
+warning and the moment plays on. A made figure appears only for the story's turns: never as a
+walk-on stranger, however long since they were met. What the game knows about a resident (their
+quests for you) is read again after any quest event, so nobody offers you the quest you just turned
+in.
 
 ## Briefs: who the companions are
 
