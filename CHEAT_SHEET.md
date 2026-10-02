@@ -314,6 +314,10 @@ either in `narrator.json` (see *If it will not start*, under `narrator run`).
 One local model answers one request at a time, so a moment being written when you speak delays your
 own reply by up to one generation. Your line still jumps the queue ahead of anything merely waiting.
 
+**Some NPCs are never company.** The game calls a Spirit Healer a humanoid, and one came over from a
+graveyard to chat. `"npc_never": ["Spirit Healer"]` in `narrator.json` is the list of names the narrator
+never treats as somebody who lives here; add to it when the next one turns up.
+
 **Companions speak first, when nobody else is about.** Nothing waits for a silence any more. When
 nobody who lives here and none of the server's wandering bots is within 25 yards of you
 (`"here_yards"`), the companions are the moment: one says something, another may answer, and they
