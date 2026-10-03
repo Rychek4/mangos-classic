@@ -83,6 +83,29 @@ if (-not $sawPort) {
 Set-Content -Path $botConf -Value $updated
 Write-Good "AiPlayerbot.Bridge.Port = $BridgePort"
 
+<#
+    The bubble: how far round each real player the bridge reports units. The
+    module's default is 40 yards; the narrator's headlight (who it may pick
+    while the party runs) reaches 80 yards ahead, and a beam the bridge cannot
+    see to the end of is mostly empty. A restart picks it up; no rebuild.
+#>
+$SceneRadius = 80
+$lines = Get-Content $botConf
+$sawRadius = $false
+$updated = foreach ($line in $lines) {
+    if ($line -match "^\s*#?\s*AiPlayerbot\.Bridge\.SceneRadius\s*=") {
+        $sawRadius = $true
+        "AiPlayerbot.Bridge.SceneRadius = $SceneRadius"
+    } else {
+        $line
+    }
+}
+if (-not $sawRadius) {
+    $updated = $updated + "AiPlayerbot.Bridge.SceneRadius = $SceneRadius"
+}
+Set-Content -Path $botConf -Value $updated
+Write-Good "AiPlayerbot.Bridge.SceneRadius = $SceneRadius"
+
 $enabled = Select-String -Path $botConf -Pattern "^\s*AiPlayerbot\.Enabled\s*=\s*(\d)" | Select-Object -First 1
 if ($enabled -and $enabled.Matches[0].Groups[1].Value -eq "0") {
     Write-Warn "AiPlayerbot.Enabled is 0. Set it to 1 or there will be no bots at all."

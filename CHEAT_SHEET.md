@@ -315,11 +315,18 @@ One local model answers one request at a time, so a moment being written when yo
 own reply by up to one generation. Your line still jumps the queue ahead of anything merely waiting.
 
 **Whoever speaks to you while you run is ahead of you.** The narrator measures where you are going from
-the scene's positions (your heading and pace, every two seconds) and picks the people who live here from
-round where you will be when the words land, not round where you are now: at a run that is the one
-guard fifty yards ahead, and nobody beside or behind you. Standing, nothing changes. The narrator's page
-says `the party is running north` and lists each person as `18 yd ahead, closing`. It is a heading, not
-a prophecy: a corner is seen two to four seconds late.
+the scene's positions (your heading and pace, every two seconds) and, at a run, picks the people who
+live here from a headlight: a beam from your feet along your heading, eighty yards long and thirty
+degrees either side. Nobody beside or behind you is offered, even when they are the only ones about;
+at seven yards a second they are gone before they could speak. Standing or walking, it is the circle
+of 25 yards round you it always was. People have headings too, so a guard walking across your way is
+on the menu and a vendor walking off it is not, and the list is ordered by how far apart you will be
+when the words land. The narrator's page says `the party is running north` and lists each person as
+`18 yd ahead, closing`. It is a heading, not a prophecy: a corner is seen two to four seconds late.
+The beam needs the bridge to see as far as it reaches, so `AiPlayerbot.Bridge.SceneRadius = 80` in
+`aiplayerbot.conf` (`Install-Configs.ps1` sets it; a restart, not a rebuild). `"reach"` in
+`narrator.json` switches the shape: `"headlight"`, `"ahead"` (the circle moved ahead of you, as
+played on 2 October) or `"circle"` (round where you stand, as before that).
 
 **Some NPCs are never company.** The game calls a Spirit Healer a humanoid, and one came over from a
 graveyard to chat. `"npc_never": ["Spirit Healer"]` in `narrator.json` is the list of names the narrator
