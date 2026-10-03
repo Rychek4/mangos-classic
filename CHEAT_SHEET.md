@@ -328,6 +328,13 @@ The beam needs the bridge to see as far as it reaches, so `AiPlayerbot.Bridge.Sc
 `narrator.json` switches the shape: `"headlight"`, `"ahead"` (the circle moved ahead of you, as
 played on 2 October) or `"circle"` (round where you stand, as before that).
 
+**They can point the way.** The narrator's page lists the named places round about - the areas the
+game names and the innkeepers, trainers and vendors a traveller asks after, within 600 yards
+(`"places_yards"`), each as yards and a compass word from where you stand - out of the playerbots
+module's own travel data (`world.places` on the bridge, so **the module needs rebuilding** for it).
+Ask a farmer the way to the mine and she can say south, past the vineyard; the narrator never
+invents a place, only points at one the page listed.
+
 **Some NPCs are never company.** The game calls a Spirit Healer a humanoid, and one came over from a
 graveyard to chat. `"npc_never": ["Spirit Healer"]` in `narrator.json` is the list of names the narrator
 never treats as somebody who lives here; add to it when the next one turns up.
