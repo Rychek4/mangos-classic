@@ -438,11 +438,14 @@ so a pause only stopped the companions answering while the world went on.
 
 ## After a session: the file to send
 
-Every `narrator run` writes one text file: `C:\wow\Azeroth_Narrator\sessions\<date>-<time>.log`.
-It has everything said (and whether you could hear it), every zone change, fight,
-level, quest, death, every companion line the model wrote and how long it took,
-what you typed in the overlay, and any warnings. Send the newest `.log`; the
-`.jsonl` beside it is the raw traffic if more is needed.
+Every `narrator run` writes three files into `C:\wow\Azeroth_Narrator\sessions\`:
+`<date>-<time>.log`, which has everything said (and whether you could hear it), every zone change,
+fight, level, quest, death, every companion line the model wrote and how long it took, what you
+typed in the overlay, and any warnings; `.jsonl`, the raw bridge traffic, which replays offline; and
+`.prompts.jsonl`, every prompt the model was shown with what it thought and what it answered. Send
+all three. The `llm` lines in the log carry llama.cpp's own counts (`prompt 4,112 tokens (3,067
+cached, the rest read in 0.6 s), 212 tokens out in 3.5 s`) and say `thought N chars first` if the
+model thought before answering, which with `--reasoning-budget 0` on the launch line it does not.
 
 **How often things happen is not a setting.** There is no scene timer and no gap between scenes.
 The narrator looks, chooses the next moment, plays it, and looks again, so the size of each moment
@@ -473,6 +476,10 @@ Afterwards everyone is let go where they stand, fetched strangers too; they carr
 rather than logging out. Once strangers have been fetched, nobody else is fetched until you have
 walked about 500 yards, so a camp you are grinding at does not fill up with travellers; bots really
 standing about can still walk over, and a story turn's figure can still arrive. Companions remember the moments they stood through.
+A stranger the narrator is speaking for is held on the module's `silent` strategy for the moment, so
+it says only what it is given: without that, the module answers anything you say near a random bot
+with a mangled echo of your own words ("yeah i know there is a"). A random bot merely standing near
+you, not cast, still does; that is the module's, not the narrator's.
 
 The shapes are the narrator's choice: someone walks up to you, two people talk to each other off to
 one side and you overhear, a pair passes mid-conversation, or nobody moves and the people already
@@ -614,8 +621,12 @@ The innkeeper, the guard at the gate, the farmer with work for you: walk within 
 moment. They turn to face you, gesture now and then, and the bubble appears over their head in the
 client; once you walk on (out of those 25 yards) they turn back the way they stood. Now and then the
 narrator has one walk over to you, walk along with you to the edge of where they live, or go back to
-their work (`npc.move`); a patrolling guard or an escort never moves. Anybody moved is back at their
-spot when you walk on, and a server restart resets everyone anyway. What they say is
+their work (`npc.move`); a patrolling guard or an escort never moves. Somebody walking over to you is
+aimed at you again every two seconds until they are beside you, so if you keep moving they still meet
+you rather than walking to where you were (Sara Timberlain walked fifty yards to an empty spot on 3
+October); they never run. Two people of one name (a pair of Stormwind Guards) are one entry on the
+page, the nearer: the narrator casts by name, so the other could never be addressed anyway. Anybody
+moved is back at their spot when you walk on, and a server restart resets everyone anyway. What they say is
 hung on facts the game supplies, one topic at a time, each spent by saying it:
 
 1. a vendor's wares, for somebody whose job is selling or repairing (an innkeeper who also sells is
