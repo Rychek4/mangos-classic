@@ -217,7 +217,14 @@ AiPlayerbot.Bridge.Port = 8890
 That is the whole switch. The other five `Bridge.` keys have working defaults:
 local bind address, a 30 second reconciliation scene, a 500 ms bubble scan, a
 40 yard bubble, four clients maximum. With the port at 0 or commented out the
-bridge never opens a socket.
+bridge never opens a socket. One default is worth changing: the narrator's
+headlight (who it may pick while you run) reaches eighty yards ahead, so set
+
+```
+AiPlayerbot.Bridge.SceneRadius = 80
+```
+
+as well; `Install-Configs.ps1` does both.
 
 Check that `AiPlayerbot.Enabled = 1` while you are in there. It is the shipped
 default.
